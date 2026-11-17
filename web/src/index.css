@@ -1,0 +1,134 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource/barlow/400.css";
+@import "@fontsource/barlow/500.css";
+@import "@fontsource/barlow/600.css";
+@import "@fontsource/barlow-condensed/500.css";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    --font-sans: 'Barlow', system-ui, sans-serif;
+    --color-faixa: var(--faixa);
+    --color-placa: var(--placa);
+    --color-sinal: var(--sinal);
+    --color-verde: var(--verde);
+    --color-asfalto: var(--asfalto);
+    --color-chapa: var(--chapa);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+    /* Pátio — tokens do painel */
+    --asfalto: #1b232b;      /* tinta principal e faixa escura do funil */
+    --pista: #eceef0;        /* fundo do app */
+    --chapa: #ffffff;        /* superfícies */
+    --faixa: #f2b705;        /* amarelo de sinalização (acento) */
+    --placa: #1f4e9e;        /* azul da placa Mercosul (informação) */
+    --sinal: #c8412b;        /* urgente */
+    --verde: #2f7d4f;        /* confirmado/vendido */
+
+    --background: var(--pista);
+    --foreground: var(--asfalto);
+    --card: var(--chapa);
+    --card-foreground: var(--asfalto);
+    --popover: var(--chapa);
+    --popover-foreground: var(--asfalto);
+    --primary: var(--asfalto);
+    --primary-foreground: #ffffff;
+    --secondary: #e2e5e8;
+    --secondary-foreground: var(--asfalto);
+    --muted: #e6e8eb;
+    --muted-foreground: #5b6670;
+    --accent: #fff4cc;
+    --accent-foreground: var(--asfalto);
+    --destructive: var(--sinal);
+    --border: #d6dade;
+    --input: #cfd4d9;
+    --ring: var(--faixa);
+    --chart-1: var(--asfalto);
+    --chart-2: var(--faixa);
+    --chart-3: var(--placa);
+    --chart-4: #8a959f;
+    --chart-5: var(--verde);
+    --radius: 0.5rem;
+    --sidebar: #f6f7f8;
+    --sidebar-foreground: var(--asfalto);
+    --sidebar-primary: var(--asfalto);
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #e6e8eb;
+    --sidebar-accent-foreground: var(--asfalto);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--faixa);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  html {
+    @apply font-sans;
+    }
+}
+@layer base {
+  html { -webkit-font-smoothing: antialiased; }
+  body { font-size: 15px; line-height: 1.45; }
+  h1, h2, h3 { font-family: var(--font-heading); letter-spacing: 0.005em; }
+  :focus-visible { outline: 2px solid var(--faixa); outline-offset: 2px; }
+  .num { font-family: var(--font-heading); font-variant-numeric: tabular-nums; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+}
+
+/* Faixa tracejada de estrada (usada no funil e no item ativo do menu) */
+.lane-dash {
+  background-image: repeating-linear-gradient(90deg, var(--faixa) 0 22px, transparent 22px 38px);
+}
+.lane-dash-v {
+  background-image: repeating-linear-gradient(180deg, var(--faixa) 0 10px, transparent 10px 16px);
+}

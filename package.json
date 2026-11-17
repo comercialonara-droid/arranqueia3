@@ -1,0 +1,34 @@
+{
+  "name": "arranque",
+  "version": "1.0.0",
+  "description": "Arranque — IA de vendas no WhatsApp para lojas de veículos",
+  "scripts": {
+    "dev": "NODE_OPTIONS=--disable-warning=ExperimentalWarning tsx watch server/src/index.ts",
+    "start": "node --disable-warning=ExperimentalWarning dist/index.js",
+    "build": "npm run build:server && npm run build:web",
+    "build:server": "tsc -p server/tsconfig.json",
+    "build:web": "cd web && npm run build",
+    "seed": "tsx server/src/scripts/seed.ts",
+    "seed:prod": "node --disable-warning=ExperimentalWarning dist/scripts/seed.js",
+    "test": "node --disable-warning=ExperimentalWarning --import tsx --test server/test/*.test.ts",
+    "typecheck": "tsc -p server/tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.9.0",
+    "@fastify/cors": "^11.4.3",
+    "@fastify/multipart": "^10.1.9",
+    "@fastify/static": "^10.1.11",
+    "fastify": "^5.12.8",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.13"
+  }
+}
