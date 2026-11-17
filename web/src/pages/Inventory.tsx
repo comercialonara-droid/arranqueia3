@@ -170,6 +170,7 @@ export default function Inventory() {
 /** Linha de resumo do card: carro mostra km/câmbio; bike mostra autonomia/motor. */
 function summaryLine(v: Vehicle, seg: SegmentUI) {
   if (seg.id === "veiculos") return [km(v.km), v.cambio === "automatico" ? "automático" : v.cambio, v.combustivel, v.cor].filter(Boolean).join(", ");
+  if (seg.id === "motos") return [km(v.km), v.ficha?.cilindrada_cc && `${v.ficha.cilindrada_cc} cc`, v.cor].filter(Boolean).join(", ");
   const f = v.ficha ?? {};
   return [f.autonomia_km && `${f.autonomia_km} km de autonomia`, f.motor_w && `${f.motor_w}W`, f.bateria, v.cor].filter(Boolean).join(", ");
 }
@@ -354,9 +355,9 @@ function VehicleSheet({ draft, onClose, seg }: { draft: Draft | null; onClose: (
           </section>
 
           <div className="grid grid-cols-2 gap-3">
-            {text("marca", "Marca", { placeholder: seg.id === "veiculos" ? "Toyota" : "INOW" })}
-            {text("modelo", "Modelo", { placeholder: seg.id === "veiculos" ? "Corolla" : "V40 Pro" })}
-            <div className="col-span-2">{text("versao", "Versão", { placeholder: seg.id === "veiculos" ? "XEi 2.0 Flex" : "2026, banco caramelo" })}</div>
+            {text("marca", "Marca", { placeholder: { veiculos: "Toyota", motos: "Honda", bikes_eletricas: "INOW" }[seg.id] })}
+            {text("modelo", "Modelo", { placeholder: { veiculos: "Corolla", motos: "CG 160", bikes_eletricas: "V40 Pro" }[seg.id] })}
+            <div className="col-span-2">{text("versao", "Versão", { placeholder: { veiculos: "XEi 2.0 Flex", motos: "Titan", bikes_eletricas: "2026, banco caramelo" }[seg.id] })}</div>
             {show("ano_fab") && numeric("ano_fab", "Ano de fabricação")}
             {numeric("ano_modelo", seg.id === "veiculos" ? "Ano do modelo" : "Ano")}
             {show("km") && numeric("km", "Quilometragem")}
@@ -424,7 +425,7 @@ function VehicleSheet({ draft, onClose, seg }: { draft: Draft | null; onClose: (
 
           <div className="grid gap-1.5">
             <Label htmlFor="v-destaques">Destaques para a IA usar na venda (um por linha)</Label>
-            <Textarea id="v-destaques" rows={3} placeholder={seg.id === "veiculos" ? "IPVA 2027 pago\nÚnico dono\nRevisões na concessionária" : "Cadeado integrado na roda\nPainel com NFC\nPronta entrega"} value={d.destaquesTxt ?? ""} onChange={(e) => set("destaquesTxt", e.target.value)} />
+            <Textarea id="v-destaques" rows={3} placeholder={seg.id === "veiculos" ? "IPVA 2027 pago\nÚnico dono\nRevisões na concessionária" : seg.id === "motos" ? "Revisada\nManual e chave reserva\nIPVA pago" : "Cadeado integrado na roda\nPainel com NFC\nPronta entrega"} value={d.destaquesTxt ?? ""} onChange={(e) => set("destaquesTxt", e.target.value)} />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="v-opcionais">Opcionais (um por linha)</Label>
@@ -463,6 +464,9 @@ const CSV_MODELO: Record<SegmentUI["id"], string> = {
   veiculos:
     "marca;modelo;versao;ano_fab;ano_modelo;km;preco;fipe;cambio;combustivel;carroceria;cor;destaques;fotos\n" +
     "Toyota;Corolla;XEi 2.0;2021;2022;117000;115900;118844;automatico;flex + GNV;sedan;cinza;IPVA 2027 pago|GNV 5ª geração;https://seusite.com/fotos/corolla-1.jpg https://seusite.com/fotos/corolla-2.jpg\n",
+  motos:
+    "marca;modelo;versao;ano_fab;ano_modelo;km;preco;fipe;categoria;cor;cilindrada_cc;consumo_kml;destaques;fotos\n" +
+    "Honda;CG 160;Titan;2023;2023;12000;16900;17500;street;vermelha;160;40;Revisada|Manual e chave reserva;https://seusite.com/fotos/cg-1.jpg\n",
   bikes_eletricas:
     "marca;modelo;ano_modelo;preco;preco_promocional;categoria;cor;motor_w;bateria;autonomia_km;velocidade_max_kmh;carga_max_kg;destaques;fotos\n" +
     "VOLTTA;V9 Max;2026;8599;7999;urbana;preta;1000;48V 15,6Ah removível;50;48;150;Cadeado integrado na roda|NFC|Alarme;https://seusite.com/fotos/v9-1.jpg\n",

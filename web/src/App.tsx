@@ -7,6 +7,9 @@ import { Shell } from "@/components/app/Shell";
 import Login from "@/pages/Login";
 
 const Overview = lazy(() => import("@/pages/Overview"));
+const Marketing = lazy(() => import("@/pages/Marketing"));
+const Campaign = lazy(() => import("@/pages/Campaign"));
+const MarketingQuestionnaire = lazy(() => import("@/pages/MarketingQuestionnaire"));
 const Conversations = lazy(() => import("@/pages/Conversations"));
 const Leads = lazy(() => import("@/pages/Leads"));
 const Simulations = lazy(() => import("@/pages/Simulations"));
@@ -69,6 +72,9 @@ export default function App() {
           <Route path="/estoque" element={<Inventory />} />
           <Route path="/agenda" element={<Agenda />} />
           <Route path="/conta" element={<Account />} />
+          {manager && <Route path="/marketing" element={<Marketing />} />}
+          {manager && <Route path="/marketing/campanhas/:id" element={<Campaign />} />}
+          {manager && <Route path="/marketing/questionario" element={<MarketingQuestionnaire />} />}
           {manager && <Route path="/simulador" element={<Simulator />} />}
           {manager && <Route path="/audios" element={<Audios />} />}
           {manager && <Route path="/equipe" element={<Team />} />}

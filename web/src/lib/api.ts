@@ -1,4 +1,4 @@
-export type Segmento = "veiculos" | "bikes_eletricas";
+export type Segmento = "veiculos" | "motos" | "bikes_eletricas";
 // Cliente da API do Arranque + tipos usados no painel
 
 export class ApiError extends Error {

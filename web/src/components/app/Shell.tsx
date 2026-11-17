@@ -4,12 +4,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AudioLines,
   Bike,
+  Motorbike,
   Building2,
   CalendarDays,
   CarFront,
   ClipboardCheck,
   Gauge,
   LogOut,
+  Megaphone,
   MessagesSquare,
   MoreHorizontal,
   Settings2,
@@ -32,6 +34,7 @@ const NAV: NavItem[] = [
   { to: "/leads", label: "Funil de leads", icon: SquareKanban },
   { to: "/agenda", label: "Agenda", icon: CalendarDays },
   { to: "/estoque", label: "Estoque", icon: CarFront },
+  { to: "/marketing", label: "Marketing", icon: Megaphone, roles: ["admin", "dono"] },
   { to: "/simulador", label: "Testar a IA", icon: Smartphone, roles: ["admin", "dono"] },
   { to: "/audios", label: "Áudios do vendedor", icon: AudioLines, roles: ["admin", "dono"] },
   { to: "/equipe", label: "Equipe", icon: UsersRound, roles: ["admin", "dono"] },
@@ -49,7 +52,7 @@ async function logout() {
 export function Shell({ me, children }: { me: Me; children: ReactNode }) {
   const role = me.usuario.role;
   const nav = NAV.filter((n) => !n.roles || n.roles.includes(role)).map((n) =>
-    n.to === "/estoque" && me.loja_atual?.segmento === "bikes_eletricas" ? { ...n, icon: Bike } : n,
+    n.to === "/estoque" && me.loja_atual?.segmento && me.loja_atual.segmento !== "veiculos" ? { ...n, icon: me.loja_atual.segmento === "motos" ? Motorbike : Bike } : n,
   );
   const waiting = useQuery({
     queryKey: ["conversas", "humano"],

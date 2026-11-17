@@ -78,7 +78,32 @@ const BIKES: SegmentUI = {
   exemplos_cliente: ["Oi, vi o anúncio da V9 Max", "Quantos km ela faz com uma carga?", "Parcela em quantas vezes no cartão?", "Posso fazer um test ride amanhã?"],
 };
 
-export const SEGMENTS: Record<Segmento, SegmentUI> = { veiculos: VEICULOS, bikes_eletricas: BIKES };
+const MOTOS: SegmentUI = {
+  id: "motos",
+  nome: "Motos",
+  produto: "moto",
+  produtos: "motos",
+  Produto: "Moto",
+  Produtos: "Motos",
+  um: "uma moto",
+  o: "a moto",
+  do: "da moto",
+  novo: "Nova moto",
+  esconder: ["portas", "cambio"],
+  ficha: [
+    { chave: "cilindrada_cc", rotulo: "Cilindrada", unidade: "cc", exemplo: "160" },
+    { chave: "partida", rotulo: "Partida", exemplo: "elétrica" },
+    { chave: "freios", rotulo: "Freios", exemplo: "CBS / ABS" },
+    { chave: "consumo_kml", rotulo: "Consumo", unidade: "km/l", exemplo: "40" },
+    { chave: "revisoes", rotulo: "Revisões / garantia", exemplo: "revisada, garantia de 3 meses" },
+  ],
+  categorias: ["street", "naked", "trail", "big_trail", "scooter", "custom", "esportiva", "eletrica"],
+  troca: "moto",
+  exemplo_anuncio: "CG 160 2023 revisada, entrada facilitada",
+  exemplos_cliente: ["Oi, vi o anúncio da CG 160", "Quantos km ela tem?", "Tenho uma Biz pra dar na troca", "Posso ver a moto amanhã?"],
+};
+
+export const SEGMENTS: Record<Segmento, SegmentUI> = { veiculos: VEICULOS, motos: MOTOS, bikes_eletricas: BIKES };
 export const segmentOf = (s: Segmento | null | undefined) => SEGMENTS[s ?? "veiculos"] ?? VEICULOS;
 
 /** Segmento da loja aberta no painel. */
