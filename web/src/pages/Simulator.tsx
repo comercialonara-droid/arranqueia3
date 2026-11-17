@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSegment } from "@/lib/segment";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -14,14 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
 const PHONE = "5521900000000";
-const SUGESTOES = [
-  "Oi, vi o anúncio e queria saber mais",
-  "Tem SUV automático até 90 mil?",
-  "Qual fica a parcela com 20 mil de entrada?",
-  "Aceita meu Onix 2018 na troca?",
-  "Posso ver o carro amanhã de manhã?",
-  "Consegue fazer um desconto à vista?",
-];
+const SUGESTOES_BASE = ["Oi, vi o anúncio e queria saber mais", "Ainda tem? Manda foto", "Quanto tá?", "Quero fazer uma simulação", "Quero falar com um vendedor"];
 
 export default function Simulator() {
   const qc = useQueryClient();
@@ -29,7 +23,10 @@ export default function Simulator() {
   const [contactId, setContactId] = useState<number | null>(() => Number(localStorage.getItem("sim-contato")) || null);
   const [nome, setNome] = useState("Marcos");
   const [anuncio, setAnuncio] = useState(true);
-  const [headline, setHeadline] = useState("Corolla XEi 2022 com GNV, abaixo da FIPE");
+  const seg = useSegment();
+  const SUGESTOES = [...SUGESTOES_BASE.slice(0, 4), ...seg.exemplos_cliente.slice(1), SUGESTOES_BASE[4]];
+  const [headline, setHeadline] = useState(seg.exemplo_anuncio);
+  useEffect(() => setHeadline(seg.exemplo_anuncio), [seg.exemplo_anuncio]);
   const [text, setText] = useState("");
   const [typing, setTyping] = useState(false);
   const [sending, setSending] = useState(false);
@@ -91,7 +88,7 @@ export default function Simulator() {
         description={
           <>
             Converse como se fosse um cliente. A IA usa o estoque e as configurações reais da loja, mas nada sai pelo WhatsApp.
-            {me.data?.ia.provedor === "mock" && " Agora ela está em modo de teste, com respostas prontas; com a chave da Anthropic configurada, quem responde é o Claude."}
+
           </>
         }
         actions={
@@ -101,14 +98,23 @@ export default function Simulator() {
         }
       />
 
+      {me.data?.ia.provedor === "mock" && (
+        <div className="mb-5 rounded-lg border-2 border-faixa bg-accent px-4 py-3">
+          <p className="font-medium">Modo de teste: quem responde não é a IA de verdade.</p>
+          <p className="mt-0.5 text-sm">
+            Sem a chave da Anthropic, o sistema usa respostas prontas só para testar o caminho (fotos, simulação, agenda, vendedor). Para conversar com o Claude, coloque{" "}
+            <code className="rounded bg-chapa px-1">ANTHROPIC_API_KEY</code> nas variáveis do servidor.
+          </p>
+        </div>
+      )}
       <div className="grid gap-6 lg:grid-cols-[400px_1fr]">
         <div>
           {/* aparelho */}
           <div className="mx-auto flex h-[680px] max-w-[400px] flex-col overflow-hidden rounded-[28px] border-[6px] border-asfalto bg-[#e9ecef] shadow-[0_18px_40px_-18px_rgba(27,35,43,.45)]">
             <div className="flex items-center gap-3 bg-asfalto px-4 py-3 text-white">
-              <span className="grid size-9 place-items-center rounded-full bg-faixa font-heading text-lg font-semibold text-asfalto">{(me.data?.loja ?? "L")[0]}</span>
+              <span className="grid size-9 place-items-center rounded-full bg-faixa font-heading text-lg font-semibold text-asfalto">{(me.data?.loja_atual?.nome ?? "L")[0]}</span>
               <div className="min-w-0">
-                <p className="truncate font-medium">{me.data?.loja}</p>
+                <p className="truncate font-medium">{me.data?.loja_atual?.nome}</p>
                 <p className="text-xs text-white/70">{typing ? "digitando…" : "online"}</p>
               </div>
             </div>

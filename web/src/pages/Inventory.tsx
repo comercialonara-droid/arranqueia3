@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, FileUp, ImagePlus, Plus, Star, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileUp, Film, ImagePlus, Plus, Star, Trash2, X } from "lucide-react";
+import { useMe } from "@/components/app/Shell";
 import { del, get, post, put, upload, type Vehicle } from "@/lib/api";
 import { brl, km, vehicleTitle, vehicleYear } from "@/lib/format";
 import { PageHeader } from "@/components/app/Shell";
@@ -16,6 +17,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useSegment, type SegmentUI } from "@/lib/segment";
 
 const STATUS = [
   { id: "disponivel", label: "Disponível" },
@@ -27,6 +29,9 @@ type Draft = Partial<Vehicle> & { opcionaisTxt?: string; destaquesTxt?: string }
 
 export default function Inventory() {
   const qc = useQueryClient();
+  const me = useMe();
+  const canEdit = me?.usuario.role !== "vendedor";
+  const seg = useSegment();
   const list = useQuery({ queryKey: ["veiculos"], queryFn: () => get<Vehicle[]>("/api/veiculos") });
   const [editing, setEditing] = useState<Draft | null>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -53,16 +58,18 @@ export default function Inventory() {
     <div className="mx-auto max-w-[1400px]">
       <PageHeader
         title="Estoque"
-        description="A IA só oferece o que está aqui. Carro com fotos e preço vende mais: ela manda as fotos e calcula a parcela na hora."
+        description={`A IA só oferece o que está aqui. ${seg.Produto} com fotos e preço vende mais: ela manda as fotos e calcula a parcela na hora.`}
         actions={
+          canEdit && (
           <>
             <Button variant="outline" onClick={() => setImportOpen(true)}>
               <FileUp /> Importar planilha
             </Button>
-            <Button onClick={() => setEditing({ status: "disponivel", fotos: [], opcionaisTxt: "", destaquesTxt: "" })}>
-              <Plus /> Adicionar carro
+            <Button onClick={() => setEditing({ status: "disponivel", fotos: [], videos: [], opcionaisTxt: "", destaquesTxt: "" })}>
+              <Plus /> Adicionar {seg.produto}
             </Button>
           </>
+          )
         }
       />
 
@@ -89,7 +96,7 @@ export default function Inventory() {
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-lg border border-dashed bg-chapa p-10 text-center">
-          <p className="text-lg">Nenhum carro {filtro !== "todos" ? "nesta situação" : "cadastrado"}.</p>
+          <p className="text-lg">Nenhum{seg.id === "veiculos" ? "" : "a"} {seg.produto} {filtro !== "todos" ? "nesta situação" : seg.id === "veiculos" ? "cadastrado" : "cadastrada"}.</p>
           <p className="mt-1 text-muted-foreground">Adicione um por um ou importe a planilha do estoque.</p>
         </div>
       ) : (
@@ -99,7 +106,7 @@ export default function Inventory() {
             const abaixo = v.fipe && preco && preco < v.fipe ? v.fipe - preco : null;
             return (
               <li key={v.id} className="flex flex-col overflow-hidden rounded-lg border bg-chapa">
-                <button className="relative block aspect-[4/3] w-full bg-muted text-left" onClick={() => setEditing(toDraft(v))} aria-label={`Editar ${vehicleTitle(v)}`}>
+                <button className="relative block aspect-[4/3] w-full bg-muted text-left" onClick={() => canEdit && setEditing(toDraft(v))} aria-label={`Editar ${vehicleTitle(v)}`}>
                   {v.fotos[0] ? (
                     <img src={v.fotos[0].url} alt="" className="size-full object-cover" loading="lazy" />
                   ) : (
@@ -111,6 +118,7 @@ export default function Inventory() {
                   )}
                   <span className="absolute bottom-2 left-2 flex gap-1.5">
                     {v.fotos.length > 0 && <span className="rounded bg-asfalto/85 px-1.5 py-0.5 text-xs text-white">{v.fotos.length} fotos</span>}
+                    {v.videos?.length > 0 && <span className="rounded bg-asfalto/85 px-1.5 py-0.5 text-xs text-white">{v.videos.length} {v.videos.length === 1 ? "vídeo" : "vídeos"}</span>}
                     {v.destaque && (
                       <span className="flex items-center gap-1 rounded bg-faixa px-1.5 py-0.5 text-xs font-medium text-asfalto">
                         <Star className="size-3" /> Destaque
@@ -127,7 +135,7 @@ export default function Inventory() {
                     </div>
                     {vehicleYear(v) && <PlateChip className="mt-1 shrink-0">{vehicleYear(v)}</PlateChip>}
                   </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{[km(v.km), v.cambio === "automatico" ? "automático" : v.cambio, v.combustivel, v.cor].filter(Boolean).join(", ")}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{summaryLine(v, seg)}</p>
                   <div className="mt-auto flex items-end justify-between gap-2 pt-4">
                     <div>
                       <p className="num text-[28px] font-semibold leading-none">{preco ? brl(preco) : "Sem preço"}</p>
@@ -153,10 +161,17 @@ export default function Inventory() {
         </ul>
       )}
 
-      <VehicleSheet draft={editing} onClose={() => setEditing(null)} />
-      <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
+      <VehicleSheet draft={editing} onClose={() => setEditing(null)} seg={seg} />
+      <ImportDialog open={importOpen} onOpenChange={setImportOpen} seg={seg} />
     </div>
   );
+}
+
+/** Linha de resumo do card: carro mostra km/câmbio; bike mostra autonomia/motor. */
+function summaryLine(v: Vehicle, seg: SegmentUI) {
+  if (seg.id === "veiculos") return [km(v.km), v.cambio === "automatico" ? "automático" : v.cambio, v.combustivel, v.cor].filter(Boolean).join(", ");
+  const f = v.ficha ?? {};
+  return [f.autonomia_km && `${f.autonomia_km} km de autonomia`, f.motor_w && `${f.motor_w}W`, f.bateria, v.cor].filter(Boolean).join(", ");
 }
 
 function toDraft(v: Vehicle): Draft {
@@ -170,11 +185,13 @@ const numOrNull = (s: string) => {
   return Number.isFinite(n) ? n : null;
 };
 
-function VehicleSheet({ draft, onClose }: { draft: Draft | null; onClose: () => void }) {
+function VehicleSheet({ draft, onClose, seg }: { draft: Draft | null; onClose: () => void; seg: SegmentUI }) {
+  const show = (k: string) => !seg.esconder.includes(k);
   const qc = useQueryClient();
   const [d, setD] = useState<Draft>({});
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
   const [lastDraft, setLastDraft] = useState<Draft | null>(null);
   if (draft !== lastDraft) {
     setLastDraft(draft);
@@ -198,7 +215,7 @@ function VehicleSheet({ draft, onClose }: { draft: Draft | null; onClose: () => 
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["veiculos"] });
-      toast.success(isNew ? "Carro adicionado ao estoque." : "Alterações salvas.");
+      toast.success(isNew ? `${seg.Produto} adicionad${seg.id === "veiculos" ? "o" : "a"} ao estoque.` : "Alterações salvas.");
       onClose();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -207,7 +224,7 @@ function VehicleSheet({ draft, onClose }: { draft: Draft | null; onClose: () => 
     mutationFn: () => del(`/api/veiculos/${d.id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["veiculos"] });
-      toast.success("Carro removido do estoque.");
+      toast.success(`${seg.Produto} removid${seg.id === "veiculos" ? "o" : "a"} do estoque.`);
       onClose();
     },
   });
@@ -238,8 +255,8 @@ function VehicleSheet({ draft, onClose }: { draft: Draft | null; onClose: () => 
     <Sheet open={draft !== null} onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
         <SheetHeader>
-          <SheetTitle className="font-heading text-3xl">{isNew ? "Novo carro" : vehicleTitle(d as Vehicle)}</SheetTitle>
-          <SheetDescription>Tudo o que estiver aqui a IA pode usar para responder o cliente.</SheetDescription>
+          <SheetTitle className="font-heading text-3xl">{isNew ? seg.novo : vehicleTitle(d as Vehicle)}</SheetTitle>
+          <SheetDescription>Tudo o que estiver aqui a IA pode usar para responder o cliente. O preço fica guardado mesmo se a loja não passar valores pelo WhatsApp.</SheetDescription>
         </SheetHeader>
         <div className="grid gap-5 px-4 pb-4">
           <section>
@@ -295,18 +312,56 @@ function VehicleSheet({ draft, onClose }: { draft: Draft | null; onClose: () => 
                 }
               }}
             />
-            <p className="mt-1.5 text-xs text-muted-foreground">Use fotos reais do carro, em JPG ou PNG. O WhatsApp não aceita outros formatos.</p>
+            <p className="mt-1.5 text-xs text-muted-foreground">Use fotos reais {seg.do}, em JPG ou PNG. O WhatsApp não aceita outros formatos.</p>
+          </section>
+
+          <section>
+            <Label>Vídeos (MP4 de até 16 MB)</Label>
+            <ul className="mt-2 space-y-2">
+              {(d.videos ?? []).map((v, i) => (
+                <li key={v.url + i} className="flex items-center gap-2">
+                  <video src={v.url} className="h-16 w-28 rounded bg-black object-cover" preload="metadata" />
+                  <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">Vídeo {i + 1}</span>
+                  <Button type="button" variant="ghost" size="icon-sm" onClick={() => set("videos", (d.videos ?? []).filter((_, j) => j !== i))} aria-label="Remover vídeo">
+                    <X />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            <Button type="button" variant="outline" size="sm" className="mt-2" disabled={uploading} onClick={() => videoRef.current?.click()}>
+              <Film /> {uploading ? "Enviando…" : "Adicionar vídeo"}
+            </Button>
+            <input
+              ref={videoRef}
+              type="file"
+              accept="video/mp4"
+              hidden
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                setUploading(true);
+                try {
+                  const r = await upload(f);
+                  setD((x) => ({ ...x, videos: [...(x.videos ?? []), { url: r.url }] }));
+                } catch (err) {
+                  toast.error((err as Error).message);
+                } finally {
+                  setUploading(false);
+                  e.target.value = "";
+                }
+              }}
+            />
           </section>
 
           <div className="grid grid-cols-2 gap-3">
-            {text("marca", "Marca", { placeholder: "Toyota" })}
-            {text("modelo", "Modelo", { placeholder: "Corolla" })}
-            <div className="col-span-2">{text("versao", "Versão", { placeholder: "XEi 2.0 Flex" })}</div>
-            {numeric("ano_fab", "Ano de fabricação")}
-            {numeric("ano_modelo", "Ano do modelo")}
-            {numeric("km", "Quilometragem")}
+            {text("marca", "Marca", { placeholder: seg.id === "veiculos" ? "Toyota" : "INOW" })}
+            {text("modelo", "Modelo", { placeholder: seg.id === "veiculos" ? "Corolla" : "V40 Pro" })}
+            <div className="col-span-2">{text("versao", "Versão", { placeholder: seg.id === "veiculos" ? "XEi 2.0 Flex" : "2026, banco caramelo" })}</div>
+            {show("ano_fab") && numeric("ano_fab", "Ano de fabricação")}
+            {numeric("ano_modelo", seg.id === "veiculos" ? "Ano do modelo" : "Ano")}
+            {show("km") && numeric("km", "Quilometragem")}
             {text("cor", "Cor")}
-            <div className="grid gap-1.5">
+            {show("cambio") && <div className="grid gap-1.5">
               <Label>Câmbio</Label>
               <Select value={d.cambio ?? ""} onValueChange={(v) => set("cambio", v)}>
                 <SelectTrigger className="w-full">
@@ -318,36 +373,58 @@ function VehicleSheet({ draft, onClose }: { draft: Draft | null; onClose: () => 
                   <SelectItem value="cvt">CVT</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </div>}
             <div className="grid gap-1.5">
-              <Label>Carroceria</Label>
+              <Label>{seg.id === "veiculos" ? "Carroceria" : "Tipo"}</Label>
               <Select value={d.carroceria ?? ""} onValueChange={(v) => set("carroceria", v)}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Escolha" />
                 </SelectTrigger>
                 <SelectContent>
-                  {["hatch", "sedan", "suv", "picape", "utilitario", "minivan", "cupe", "moto"].map((c) => (
+                  {seg.categorias.map((c) => (
                     <SelectItem key={c} value={c}>
-                      {c === "suv" ? "SUV" : c[0].toUpperCase() + c.slice(1).replace("utilitario", "Utilitário").replace("cupe", "Cupê")}
+                      {c === "suv" ? "SUV" : c[0].toUpperCase() + c.slice(1).replace("utilitario", "Utilitário").replace("cupe", "Cupê").replace("dobravel", "Dobrável").replace("cargueira", "Cargueira")}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            {text("combustivel", "Combustível", { placeholder: "flex, flex + GNV, diesel" })}
-            {text("final_placa", "Final da placa")}
+            {show("combustivel") && text("combustivel", "Combustível", { placeholder: "flex, flex + GNV, diesel" })}
+            {show("final_placa") && text("final_placa", "Final da placa")}
           </div>
+
+          {seg.ficha.length > 0 && (
+            <fieldset className="grid gap-3">
+              <legend className="mb-2 text-sm font-medium">Ficha técnica</legend>
+              <div className="grid grid-cols-2 gap-3">
+                {seg.ficha.map((f) => (
+                  <div key={f.chave} className="grid gap-1.5">
+                    <Label htmlFor={`f-${f.chave}`}>
+                      {f.rotulo}
+                      {f.unidade ? ` (${f.unidade})` : ""}
+                    </Label>
+                    <Input
+                      id={`f-${f.chave}`}
+                      placeholder={f.exemplo}
+                      value={d.ficha?.[f.chave] ?? ""}
+                      onChange={(e) => setD((x) => ({ ...x, ficha: { ...(x.ficha ?? {}), [f.chave]: e.target.value } }))}
+                    />
+                  </div>
+                ))}
+              </div>
+            </fieldset>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             {numeric("preco", "Preço (R$)")}
             {numeric("preco_promocional", "Preço promocional (R$)")}
-            {numeric("fipe", "Tabela FIPE (R$)")}
+            {show("fipe") && numeric("fipe", "Tabela FIPE (R$)")}
             {numeric("entrada_sugerida", "Entrada sugerida (R$)")}
           </div>
 
           <div className="grid gap-1.5">
             <Label htmlFor="v-destaques">Destaques para a IA usar na venda (um por linha)</Label>
-            <Textarea id="v-destaques" rows={3} placeholder={"IPVA 2027 pago\nÚnico dono\nRevisões na concessionária"} value={d.destaquesTxt ?? ""} onChange={(e) => set("destaquesTxt", e.target.value)} />
+            <Textarea id="v-destaques" rows={3} placeholder={seg.id === "veiculos" ? "IPVA 2027 pago\nÚnico dono\nRevisões na concessionária" : "Cadeado integrado na roda\nPainel com NFC\nPronta entrega"} value={d.destaquesTxt ?? ""} onChange={(e) => set("destaquesTxt", e.target.value)} />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="v-opcionais">Opcionais (um por linha)</Label>
@@ -359,7 +436,7 @@ function VehicleSheet({ draft, onClose }: { draft: Draft | null; onClose: () => 
           </div>
           <div className="flex items-center justify-between rounded-md border p-3">
             <div>
-              <Label htmlFor="v-dest">Carro em destaque</Label>
+              <Label htmlFor="v-dest">{seg.Produto} em destaque</Label>
               <p className="text-sm text-muted-foreground">A IA sugere primeiro quando o cliente não sabe o que quer.</p>
             </div>
             <Switch id="v-dest" checked={Boolean(d.destaque)} onCheckedChange={(c) => set("destaque", c)} />
@@ -367,7 +444,7 @@ function VehicleSheet({ draft, onClose }: { draft: Draft | null; onClose: () => 
         </div>
         <SheetFooter className="flex-row justify-between border-t">
           {!isNew ? (
-            <Button variant="destructive" onClick={() => confirm("Remover este carro do estoque?") && remove.mutate()}>
+            <Button variant="destructive" onClick={() => confirm(`Remover ${seg.id === "veiculos" ? "este" : "esta"} ${seg.produto} do estoque?`) && remove.mutate()}>
               <Trash2 /> Remover
             </Button>
           ) : (
@@ -382,18 +459,23 @@ function VehicleSheet({ draft, onClose }: { draft: Draft | null; onClose: () => 
   );
 }
 
-const CSV_MODELO =
-  "marca;modelo;versao;ano_fab;ano_modelo;km;preco;fipe;cambio;combustivel;carroceria;cor;destaques;fotos\n" +
-  "Toyota;Corolla;XEi 2.0;2021;2022;117000;115900;118844;automatico;flex + GNV;sedan;cinza;IPVA 2027 pago|GNV 5ª geração;https://seusite.com/fotos/corolla-1.jpg https://seusite.com/fotos/corolla-2.jpg\n";
+const CSV_MODELO: Record<SegmentUI["id"], string> = {
+  veiculos:
+    "marca;modelo;versao;ano_fab;ano_modelo;km;preco;fipe;cambio;combustivel;carroceria;cor;destaques;fotos\n" +
+    "Toyota;Corolla;XEi 2.0;2021;2022;117000;115900;118844;automatico;flex + GNV;sedan;cinza;IPVA 2027 pago|GNV 5ª geração;https://seusite.com/fotos/corolla-1.jpg https://seusite.com/fotos/corolla-2.jpg\n",
+  bikes_eletricas:
+    "marca;modelo;ano_modelo;preco;preco_promocional;categoria;cor;motor_w;bateria;autonomia_km;velocidade_max_kmh;carga_max_kg;destaques;fotos\n" +
+    "VOLTTA;V9 Max;2026;8599;7999;urbana;preta;1000;48V 15,6Ah removível;50;48;150;Cadeado integrado na roda|NFC|Alarme;https://seusite.com/fotos/v9-1.jpg\n",
+};
 
-function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function ImportDialog({ open, onOpenChange, seg }: { open: boolean; onOpenChange: (o: boolean) => void; seg: SegmentUI }) {
   const qc = useQueryClient();
   const [csv, setCsv] = useState("");
   const run = useMutation({
     mutationFn: () => post<{ importados: number; erros: string[] }>("/api/veiculos/importar", { csv }),
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ["veiculos"] });
-      toast.success(`${r.importados} carros importados.`);
+      toast.success(`${r.importados} ${seg.produtos} importad${seg.id === "veiculos" ? "os" : "as"}.`);
       if (r.erros.length) toast.warning(r.erros.slice(0, 3).join("\n"));
       setCsv("");
       onOpenChange(false);
@@ -406,10 +488,14 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
         <DialogHeader>
           <DialogTitle>Importar estoque de uma planilha</DialogTitle>
           <DialogDescription>
-            Exporte a planilha como CSV e cole aqui, ou escolha o arquivo. Colunas aceitas: marca, modelo, versao, ano_fab, ano_modelo, km, preco, fipe, cambio, combustivel, carroceria, cor, destaques, opcionais e fotos (links separados por espaço).
+            Exporte a planilha como CSV e cole aqui, ou escolha o arquivo. Colunas aceitas:{" "}
+            {seg.id === "veiculos"
+              ? "marca, modelo, versao, ano_fab, ano_modelo, km, preco, fipe, cambio, combustivel, carroceria, cor"
+              : `marca, modelo, versao, ano_modelo, preco, preco_promocional, categoria, cor, ${seg.ficha.map((f) => f.chave).join(", ")}`}
+            , destaques, opcionais e fotos (links separados por espaço).
           </DialogDescription>
         </DialogHeader>
-        <Textarea rows={8} value={csv} onChange={(e) => setCsv(e.target.value)} placeholder={CSV_MODELO} className="font-[ui-monospace,monospace] text-xs" aria-label="Conteúdo CSV" />
+        <Textarea rows={8} value={csv} onChange={(e) => setCsv(e.target.value)} placeholder={CSV_MODELO[seg.id]} className="font-[ui-monospace,monospace] text-xs" aria-label="Conteúdo CSV" />
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <label className="cursor-pointer text-placa underline">
             Escolher arquivo CSV
@@ -423,7 +509,7 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
               }}
             />
           </label>
-          <button type="button" className="text-placa underline" onClick={() => setCsv(CSV_MODELO)}>
+          <button type="button" className="text-placa underline" onClick={() => setCsv(CSV_MODELO[seg.id])}>
             Usar exemplo
           </button>
         </div>
@@ -432,7 +518,7 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
             Cancelar
           </Button>
           <Button onClick={() => run.mutate()} disabled={!csv.trim() || run.isPending}>
-            Importar carros
+            Importar {seg.produtos}
           </Button>
         </DialogFooter>
       </DialogContent>

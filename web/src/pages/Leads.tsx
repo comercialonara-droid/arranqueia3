@@ -2,8 +2,9 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Hand, Megaphone } from "lucide-react";
-import { get, patch, STAGES, type BoardLead, type LeadStage } from "@/lib/api";
+import { Download, Hand, Megaphone } from "lucide-react";
+import { get, intentLabel, patch, STAGES, withStore, type BoardLead, type LeadStage } from "@/lib/api";
+import { Button } from "@/components/ui/button";
 import { ago, brl, contactName, pagamentoLabel } from "@/lib/format";
 import { PageHeader } from "@/components/app/Shell";
 import { Temperature } from "@/components/app/Temperature";
@@ -35,7 +36,9 @@ export default function Leads() {
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
-    return (board.data ?? []).filter((l) => !t || contactName(l).toLowerCase().includes(t) || l.veiculos.some((v) => v.titulo.toLowerCase().includes(t)));
+    return (board.data ?? []).filter(
+      (l) => !t || contactName(l).toLowerCase().includes(t) || l.veiculos.some((v) => v.titulo.toLowerCase().includes(t)) || (l.tags ?? []).some((x) => x.toLowerCase().includes(t)),
+    );
   }, [board.data, q]);
 
   const byStage = (s: LeadStage) => filtered.filter((l) => l.stage === s);
@@ -45,7 +48,16 @@ export default function Leads() {
       <PageHeader
         title="Funil de leads"
         description="Arraste o card para mudar de etapa. Para registrar uma venda com valor, abra a conversa e mude a etapa para Vendido."
-        actions={<Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar cliente ou carro" className="w-64 bg-chapa" aria-label="Buscar lead" />}
+        actions={
+          <>
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar cliente, modelo ou etiqueta" className="w-64 bg-chapa" aria-label="Buscar lead" />
+            <Button variant="outline" asChild>
+              <a href={withStore("/api/leads/exportar")}>
+                <Download /> Exportar planilha
+              </a>
+            </Button>
+          </>
+        }
       />
       {board.isPending ? (
         <div className="flex gap-4">
@@ -74,14 +86,14 @@ export default function Leads() {
                     const lead = board.data?.find((l) => l.contact_id === dragging);
                     if (lead && lead.stage !== s.id) {
                       if (s.id === "vendido") {
-                        toast.info("Abra a conversa para registrar a venda com o valor e o carro.");
+                        toast.info("Abra a conversa para registrar a venda com o valor e o modelo.");
                         return;
                       }
                       move.mutate({ id: dragging, stage: s.id });
                     }
                     setDragging(null);
                   }}
-                  className={cn("flex w-[280px] shrink-0 flex-col rounded-lg border bg-sidebar transition-colors", over === s.id && "border-faixa bg-accent/60")}
+                  className={cn("flex w-[268px] shrink-0 flex-col rounded-lg border bg-sidebar transition-colors", over === s.id && "border-faixa bg-accent/60")}
                 >
                   <header className="flex items-baseline justify-between px-3.5 pb-2 pt-3">
                     <h2 className="text-xl font-semibold">{s.label}</h2>
@@ -109,6 +121,16 @@ export default function Leads() {
                             </div>
                           ) : (
                             l.interesse_texto && <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">Procura {l.interesse_texto}</p>
+                          )}
+                          <p className="mt-1.5 text-xs">{intentLabel[l.intencao]}</p>
+                          {(l.tags ?? []).length > 0 && (
+                            <div className="mt-1.5 flex flex-wrap gap-1">
+                              {l.tags.map((t) => (
+                                <span key={t} className="rounded-full border px-1.5 text-[11px]">
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
                           )}
                           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                             {l.forma_pagamento && <span>{pagamentoLabel[l.forma_pagamento]}</span>}

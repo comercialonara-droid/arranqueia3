@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Bot, Hand, IdCard, Megaphone, Search, SendHorizontal } from "lucide-react";
-import { get, post, type Conversation, type ConversationListItem } from "@/lib/api";
+import { ArrowLeft, AudioLines, Bot, Hand, IdCard, Megaphone, MessageSquareText, Search, SendHorizontal } from "lucide-react";
+import { get, intentLabel, post, type AudioClip, type Conversation, type ConversationListItem, type QuickReply } from "@/lib/api";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useMe } from "@/components/app/Shell";
 import { ago, contactName, dayLabel, phone } from "@/lib/format";
 import { onLive } from "@/lib/live";
 import { cn } from "@/lib/utils";
@@ -18,9 +20,11 @@ import { Temperature } from "@/components/app/Temperature";
 
 const FILTERS = [
   { id: "", label: "Todas" },
-  { id: "humano", label: "Com vendedor" },
+  { id: "humano", label: "Humano atendendo" },
   { id: "quentes", label: "Quentes" },
+  { id: "simulacao", label: "Com simulação" },
   { id: "anuncio", label: "De anúncio" },
+  { id: "sem_vendedor", label: "Sem vendedor", manager: true },
 ];
 
 const senderPrefix: Record<string, string> = { ia: "IA: ", vendedor: "Você: ", sistema: "" };
@@ -30,6 +34,8 @@ export default function Conversations() {
   const selected = id ? Number(id) : null;
   const [q, setQ] = useState("");
   const [filtro, setFiltro] = useState("");
+  const me = useMe();
+  const isManager = me?.usuario.role !== "vendedor";
   const list = useQuery({
     queryKey: ["conversas", filtro, q],
     queryFn: () => get<ConversationListItem[]>(`/api/conversas?filtro=${filtro}&q=${encodeURIComponent(q)}`),
@@ -45,7 +51,7 @@ export default function Conversations() {
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nome ou telefone" className="pl-8" aria-label="Buscar conversa" />
           </div>
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar conversas">
-            {FILTERS.map((f) => (
+            {FILTERS.filter((f) => !f.manager || isManager).map((f) => (
               <button
                 key={f.id}
                 onClick={() => setFiltro(f.id)}
@@ -96,6 +102,10 @@ export default function Conversations() {
                     <p className="truncate text-sm text-muted-foreground">
                       {c.last_sender && c.last_sender !== "cliente" ? senderPrefix[c.last_sender] ?? "" : ""}
                       {c.last_body ?? "…"}
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground/80">
+                      {intentLabel[c.intencao] ?? ""}
+                      {isManager && c.vendedor_nome ? `, com ${c.vendedor_nome}` : ""}
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -245,6 +255,7 @@ function ChatView({ id }: { id: number }) {
             </p>
           ) : (
             <div className="flex items-end gap-2">
+              <ComposerExtras contactId={id} onPick={(t) => setText((x) => (x ? `${x}\n${t}` : t))} />
               <Textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -278,6 +289,55 @@ function ChatView({ id }: { id: number }) {
           <LeadPanel data={conv.data} />
         </SheetContent>
       </Sheet>
+    </div>
+  );
+}
+
+function ComposerExtras({ contactId, onPick }: { contactId: number; onPick: (t: string) => void }) {
+  const qc = useQueryClient();
+  const replies = useQuery({ queryKey: ["respostas-rapidas"], queryFn: () => get<QuickReply[]>("/api/respostas-rapidas") });
+  const audios = useQuery({ queryKey: ["audios"], queryFn: () => get<AudioClip[]>("/api/audios") });
+  const sendAudio = useMutation({
+    mutationFn: (audioId: number) => post(`/api/conversas/${contactId}/audio/${audioId}`),
+    onSuccess: () => (qc.invalidateQueries({ queryKey: ["conversa", contactId] }), toast.success("Áudio enviado.")),
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <div className="flex">
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button type="button" variant="ghost" size="icon-lg" aria-label="Respostas rápidas">
+            <MessageSquareText />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" side="top" className="w-80 p-1">
+          {(replies.data ?? []).length === 0 && <p className="p-3 text-sm text-muted-foreground">Nenhuma resposta rápida. Cadastre em Configurações.</p>}
+          {replies.data?.map((r) => (
+            <button key={r.id} type="button" onClick={() => onPick(r.texto)} className="block w-full rounded px-3 py-2 text-left hover:bg-muted">
+              <span className="block text-sm font-medium">{r.atalho}</span>
+              <span className="line-clamp-2 text-xs text-muted-foreground">{r.texto}</span>
+            </button>
+          ))}
+        </PopoverContent>
+      </Popover>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button type="button" variant="ghost" size="icon-lg" aria-label="Enviar áudio gravado">
+            <AudioLines />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" side="top" className="w-72 p-1">
+          {(audios.data ?? []).filter((a) => a.ativo).length === 0 && <p className="p-3 text-sm text-muted-foreground">Nenhum áudio gravado. Suba em Áudios do vendedor.</p>}
+          {audios.data
+            ?.filter((a) => a.ativo)
+            .map((a) => (
+              <button key={a.id} type="button" onClick={() => sendAudio.mutate(a.id)} className="block w-full rounded px-3 py-2 text-left hover:bg-muted">
+                <span className="block text-sm font-medium">{a.titulo}</span>
+                <span className="line-clamp-1 text-xs text-muted-foreground">{a.quando_usar}</span>
+              </button>
+            ))}
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }

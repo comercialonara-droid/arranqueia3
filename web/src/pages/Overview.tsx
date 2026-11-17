@@ -14,9 +14,10 @@ const pausedReason = (r: string | null) => {
   if (!r) return "Atendimento humano";
   if (r.startsWith("handoff:")) {
     const m: Record<string, string> = {
+      simulacao_pronta: "Simulação pronta para rodar",
       pronto_para_negociar: "Pronto para negociar",
       pediu_humano: "Pediu para falar com alguém",
-      negociacao_de_preco: "Quer negociar o valor",
+      negociacao_de_preco: "Quer saber valores ou negociar",
       avaliacao_de_troca: "Avaliação da troca",
       duvida_sem_resposta: "A IA não soube responder",
       reclamacao: "Reclamação",
@@ -40,7 +41,7 @@ export default function Overview() {
   const atencao = useMemo(() => {
     const list = conversas.data ?? [];
     const humanos = list.filter((c) => c.ia_pausada);
-    const quentes = list.filter((c) => !c.ia_pausada && c.temperatura === "quente" && !["vendido", "perdido"].includes(c.stage));
+    const quentes = list.filter((c) => !c.ia_pausada && (c.temperatura === "quente" || c.temperatura === "pronto") && !["vendido", "perdido"].includes(c.stage));
     return [...humanos.map((c) => ({ c, kind: "humano" as const })), ...quentes.map((c) => ({ c, kind: "quente" as const }))].slice(0, 7);
   }, [conversas.data]);
 
@@ -139,7 +140,7 @@ export default function Overview() {
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[1.4fr_1fr]">
         <section className="rounded-lg border bg-chapa p-5">
-          <h2 className="text-2xl font-semibold">Conversas e visitas por dia</h2>
+          <h2 className="text-2xl font-semibold">Conversas, simulações e visitas por dia</h2>
           <div className="mt-4 h-60">
             {stats.data && (
               <ResponsiveContainer width="100%" height="100%">
@@ -153,14 +154,16 @@ export default function Overview() {
                     labelFormatter={(d) => String(d).split("-").reverse().join("/")}
                   />
                   <Bar dataKey="conversas" name="Conversas" fill="var(--asfalto)" radius={[3, 3, 0, 0]} maxBarSize={28} />
-                  <Line dataKey="visitas" name="Visitas" stroke="var(--faixa)" strokeWidth={3} dot={{ r: 3, fill: "var(--faixa)" }} type="monotone" />
+                  <Line dataKey="simulacoes" name="Simulações" stroke="var(--faixa)" strokeWidth={3} dot={{ r: 3, fill: "var(--faixa)" }} type="monotone" />
+                  <Line dataKey="visitas" name="Visitas" stroke="var(--placa)" strokeWidth={2} dot={{ r: 2.5, fill: "var(--placa)" }} type="monotone" />
                 </ComposedChart>
               </ResponsiveContainer>
             )}
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
             <span className="mr-1 inline-block size-2.5 rounded-sm bg-asfalto align-middle" /> conversas novas
-            <span className="ml-4 mr-1 inline-block h-[3px] w-3 bg-faixa align-middle" /> visitas agendadas
+            <span className="ml-4 mr-1 inline-block h-[3px] w-3 bg-faixa align-middle" /> simulações enviadas
+            <span className="ml-4 mr-1 inline-block h-[3px] w-3 bg-placa align-middle" /> visitas agendadas
           </p>
         </section>
 
@@ -176,6 +179,7 @@ export default function Overview() {
                 <tr>
                   <th className="py-1.5 font-normal">Anúncio</th>
                   <th className="w-[76px] py-1.5 text-right font-normal">Conversas</th>
+                  <th className="w-[56px] py-1.5 text-right font-normal">Simul.</th>
                   <th className="w-[56px] py-1.5 text-right font-normal">Visitas</th>
                   <th className="w-[56px] py-1.5 text-right font-normal">Vendas</th>
                 </tr>
@@ -187,6 +191,7 @@ export default function Overview() {
                       {a.anuncio}
                     </td>
                     <td className="num py-2 text-right text-base">{a.conversas}</td>
+                    <td className="num py-2 text-right text-base">{a.simulacoes}</td>
                     <td className="num py-2 text-right text-base">{a.visitas}</td>
                     <td className="num py-2 text-right text-base">{a.vendas}</td>
                   </tr>
@@ -194,7 +199,7 @@ export default function Overview() {
               </tbody>
             </table>
           )}
-          <h3 className="mt-6 text-xl font-semibold">Carros mais procurados</h3>
+          <h3 className="mt-6 text-xl font-semibold">Mais procurados</h3>
           <ul className="mt-2 space-y-1.5 text-sm">
             {(stats.data?.carros ?? []).map((c) => (
               <li key={c.id} className="flex items-center gap-2">
@@ -203,10 +208,38 @@ export default function Overview() {
                 <span className="num w-6 text-right text-base">{c.procura}</span>
               </li>
             ))}
-            {stats.data && !stats.data.carros.length && <li className="text-muted-foreground">Aparece aqui quando a IA mostrar carros aos clientes.</li>}
+            {stats.data && !stats.data.carros.length && <li className="text-muted-foreground">Aparece aqui quando a IA mostrar modelos aos clientes.</li>}
           </ul>
         </section>
       </div>
+
+      {stats.data && stats.data.vendedores.length > 0 && (
+        <section className="mt-5 rounded-lg border bg-chapa p-5">
+          <h2 className="text-2xl font-semibold">Por vendedor</h2>
+          <table className="mt-3 w-full text-sm">
+            <thead className="text-left text-muted-foreground">
+              <tr>
+                <th className="py-1.5 font-normal">Vendedor</th>
+                <th className="py-1.5 text-right font-normal">Leads recebidos</th>
+                <th className="py-1.5 text-right font-normal">Simulações</th>
+                <th className="py-1.5 text-right font-normal">Aprovadas</th>
+                <th className="py-1.5 text-right font-normal">Vendas</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {stats.data.vendedores.map((v) => (
+                <tr key={v.id}>
+                  <td className="py-2">{v.nome}</td>
+                  <td className="num py-2 text-right text-base">{v.leads}</td>
+                  <td className="num py-2 text-right text-base">{v.simulacoes}</td>
+                  <td className="num py-2 text-right text-base">{v.aprovadas}</td>
+                  <td className="num py-2 text-right text-base">{v.vendas}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       {stats.data && (
         <p className="mt-6 text-sm text-muted-foreground">
@@ -244,7 +277,7 @@ function FunnelRoad({ stats }: { stats?: Stats }) {
         </p>
       </div>
       <div className="relative mt-3 overflow-x-auto">
-        <div className="grid min-w-[720px] grid-cols-6">
+        <div className="grid min-w-[860px] grid-cols-7">
           {stages.map((s, i) => (
             <Link key={s.id} to={`/leads#${s.id}`} className="group relative px-5 pb-6 pt-3 hover:bg-white/[0.04]">
               <span className="num block text-[44px] font-semibold leading-none md:text-[56px]">{stats ? counts[i] : "–"}</span>
@@ -253,8 +286,8 @@ function FunnelRoad({ stats }: { stats?: Stats }) {
             </Link>
           ))}
         </div>
-        <div className="lane-dash h-[5px] min-w-[720px]" aria-hidden />
-        <div className="h-4 min-w-[720px]" />
+        <div className="lane-dash h-[5px] min-w-[860px]" aria-hidden />
+        <div className="h-4 min-w-[860px]" />
       </div>
     </section>
   );
@@ -272,12 +305,13 @@ function Kpis({ s }: { s: Stats }) {
     { label: "Conversas novas", v: num(s.atual.conversas), d: delta(s.atual.conversas, s.anterior.conversas) },
     { label: "Vieram de anúncio", v: num(s.atual.de_anuncio), d: s.atual.conversas ? `${Math.round((s.atual.de_anuncio / s.atual.conversas) * 100)}% das conversas` : "" },
     { label: "Leads com interesse real", v: num(s.atual.leads_qualificados), d: delta(s.atual.leads_qualificados, s.anterior.leads_qualificados) },
+    { label: "Simulações enviadas", v: num(s.atual.simulacoes), d: delta(s.atual.simulacoes, s.anterior.simulacoes) },
     { label: "Visitas agendadas", v: num(s.atual.visitas_agendadas), d: delta(s.atual.visitas_agendadas, s.anterior.visitas_agendadas) },
     { label: "Vendas registradas", v: num(s.atual.vendas), d: s.atual.faturamento ? brl(s.atual.faturamento) : "marque no funil quando vender" },
-    { label: "Primeira resposta", v: fr == null ? "–" : fr < 60 ? `${Math.round(fr)}s` : `${Math.round(fr / 60)}min`, d: "mediana" },
+    { label: "Primeira resposta", v: fr == null ? "–" : fr < 60 ? `${Math.round(fr)}s` : `${Math.round(fr / 60)}min`, d: "tempo mediano" },
   ];
   return (
-    <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border md:grid-cols-3 xl:grid-cols-6">
+    <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border md:grid-cols-4 xl:grid-cols-7">
       {items.map((k) => (
         <div key={k.label} className="bg-chapa px-4 py-3.5">
           <p className="text-sm text-muted-foreground">{k.label}</p>

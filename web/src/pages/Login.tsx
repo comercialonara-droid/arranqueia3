@@ -6,6 +6,7 @@ import { post } from "@/lib/api";
 import { Logo } from "@/components/app/Logo";
 
 export default function Login({ onLogin }: { onLogin: () => Promise<void> }) {
+  const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -20,7 +21,7 @@ export default function Login({ onLogin }: { onLogin: () => Promise<void> }) {
             setBusy(true);
             setErro(null);
             try {
-              await post("/api/login", { senha });
+              await post("/api/login", { email, senha });
               await onLogin();
             } catch (err) {
               setErro((err as Error).message);
@@ -33,13 +34,25 @@ export default function Login({ onLogin }: { onLogin: () => Promise<void> }) {
           <h1 className="text-4xl font-semibold leading-none">Painel da loja</h1>
           <p className="mt-3 text-white/70">Acompanhe as conversas que a IA está atendendo e assuma quando o cliente estiver pronto.</p>
           <div className="mt-8 space-y-2">
+            <Label htmlFor="email" className="text-white/80">
+              E-mail
+            </Label>
+            <Input
+              id="email"
+              autoFocus
+              autoComplete="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-11 border-white/20 bg-white/5 text-white placeholder:text-white/40"
+            />
+          </div>
+          <div className="mt-4 space-y-2">
             <Label htmlFor="senha" className="text-white/80">
               Senha
             </Label>
             <Input
               id="senha"
               type="password"
-              autoFocus
               autoComplete="current-password"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
@@ -47,7 +60,7 @@ export default function Login({ onLogin }: { onLogin: () => Promise<void> }) {
             />
             {erro && <p className="text-sm text-[#ffb4a6]">{erro}</p>}
           </div>
-          <Button type="submit" disabled={busy || !senha} className="mt-6 h-11 w-full bg-faixa text-asfalto hover:bg-faixa/90">
+          <Button type="submit" disabled={busy || !senha || !email} className="mt-6 h-11 w-full bg-faixa text-asfalto hover:bg-faixa/90">
             {busy ? "Entrando…" : "Entrar"}
           </Button>
         </form>

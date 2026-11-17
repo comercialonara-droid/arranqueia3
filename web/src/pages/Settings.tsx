@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import { Check, Copy, Plus, Trash2, TriangleAlert } from "lucide-react";
-import { del, get, post, put, type Me, type Seller, type Settings, type TemplateRef } from "@/lib/api";
-import { brl, phone } from "@/lib/format";
+import { del, get, post, put, type Me, type QuickReply, type Settings, type TemplateRef } from "@/lib/api";
+import { brl } from "@/lib/format";
 import { PageHeader } from "@/components/app/Shell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -66,9 +67,11 @@ export default function SettingsPage() {
         <TabsList className="mb-5 h-auto flex-wrap justify-start">
           <TabsTrigger value="loja">Loja</TabsTrigger>
           <TabsTrigger value="atendimento">Atendimento</TabsTrigger>
+          <TabsTrigger value="simulacao">Simulação</TabsTrigger>
           <TabsTrigger value="financiamento">Financiamento</TabsTrigger>
           <TabsTrigger value="agenda">Horários e agenda</TabsTrigger>
-          <TabsTrigger value="vendedores">Vendedores</TabsTrigger>
+          <TabsTrigger value="vendedores">Passagem ao vendedor</TabsTrigger>
+          <TabsTrigger value="respostas">Respostas rápidas</TabsTrigger>
           <TabsTrigger value="followup">Retomadas e lembretes</TabsTrigger>
           <TabsTrigger value="integracoes">Integrações</TabsTrigger>
         </TabsList>
@@ -100,6 +103,7 @@ export default function SettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="so_vendedor">Não passar valores: só o consultor, na simulação</SelectItem>
                     <SelectItem value="parcela_primeiro">Destacar entrada e parcela</SelectItem>
                     <SelectItem value="informar">Informar o preço cheio</SelectItem>
                   </SelectContent>
@@ -119,7 +123,19 @@ export default function SettingsPage() {
               />
             </Grid>
             <div className="mt-5 space-y-3">
-              <Toggle label="Aceita carro na troca" checked={s.atendimento.aceita_troca} onChange={(v) => upd(["atendimento", "aceita_troca"], v)} />
+              <Toggle label="Aceita usado na troca" checked={s.atendimento.aceita_troca} onChange={(v) => upd(["atendimento", "aceita_troca"], v)} />
+              <Toggle
+                label="Compra usado sem troca"
+                hint="Desligado: se a pessoa só quiser vender o usado dela, a IA explica que a loja só aceita como parte do pagamento."
+                checked={s.atendimento.compra_carro_sem_troca}
+                onChange={(v) => upd(["atendimento", "compra_carro_sem_troca"], v)}
+              />
+              <Toggle
+                label="A IA diz o nome do vendedor"
+                hint="Desligado: ela fala “nosso consultor”."
+                checked={s.atendimento.citar_nome_vendedor}
+                onChange={(v) => upd(["atendimento", "citar_nome_vendedor"], v)}
+              />
               <Toggle label="Trabalha com financiamento" checked={s.atendimento.aceita_financiamento} onChange={(v) => upd(["atendimento", "aceita_financiamento"], v)} />
               <Toggle
                 label="Responder fora do horário da loja"
@@ -131,8 +147,36 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="simulacao">
+          <Card>
+            <Toggle
+              label="A IA conduz para a simulação"
+              hint="Quando o cliente mostra interesse, ela oferece a simulação, coleta os dados e manda a ficha pronta para o vendedor."
+              checked={s.simulacao.ativa}
+              onChange={(v) => upd(["simulacao", "ativa"], v)}
+            />
+            <h3 className="mt-6 text-xl font-semibold">Dados que a IA pede</h3>
+            <p className="text-sm text-muted-foreground">Nome completo, forma de pagamento e entrada (ou troca) são sempre pedidos.</p>
+            <div className="mt-3 space-y-3">
+              <Toggle label="CPF" checked={s.simulacao.pedir_cpf} onChange={(v) => upd(["simulacao", "pedir_cpf"], v)} />
+              <Toggle label="Data de nascimento" checked={s.simulacao.pedir_nascimento} onChange={(v) => upd(["simulacao", "pedir_nascimento"], v)} />
+              <Toggle label="Se tem CNH" checked={s.simulacao.pedir_cnh} onChange={(v) => upd(["simulacao", "pedir_cnh"], v)} />
+            </div>
+            <Area
+              className="mt-5"
+              label="Aviso de privacidade (a IA diz antes de pedir o CPF)"
+              value={s.simulacao.texto_privacidade}
+              onChange={(v) => upd(["simulacao", "texto_privacidade"], v)}
+            />
+            <p className="mt-3 text-xs text-muted-foreground">O CPF fica guardado criptografado. No painel aparece mascarado; ver o número completo fica registrado com o nome de quem viu.</p>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="financiamento">
           <Card>
+            {s.atendimento.politica_preco === "so_vendedor" && (
+              <p className="mb-4 rounded-md bg-accent px-3 py-2 text-sm">A loja está configurada para não passar valores pelo WhatsApp, então a IA não usa estas contas. Elas valem se você mudar a política de preço em Atendimento.</p>
+            )}
             <div className="grid gap-1.5">
               <Label>Como calcular a parcela</Label>
               <Select value={s.financiamento.modo} onValueChange={(v) => upd(["financiamento", "modo"], v)}>
@@ -154,7 +198,7 @@ export default function SettingsPage() {
                   <InlineNum value={s.financiamento.regra_loja.prazo} onChange={(v) => upd(["financiamento", "regra_loja", "prazo"], v)} suffix="x" />.
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Exemplo: carro de {brl(100000)} com {brl(20000)} de entrada fica em {brl(Math.round((80000 / (s.financiamento.regra_loja.a_cada || 1)) * s.financiamento.regra_loja.parcela))} por mês.
+                  Exemplo: compra de {brl(100000)} com {brl(20000)} de entrada fica em {brl(Math.round((80000 / (s.financiamento.regra_loja.a_cada || 1)) * s.financiamento.regra_loja.parcela))} por mês.
                 </p>
               </div>
             ) : (
@@ -207,8 +251,14 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="vendedores">
-          <Sellers />
-          <Card className="mt-5">
+          <p className="mb-4 text-sm text-muted-foreground">
+            Quem recebe os leads e o WhatsApp de cada vendedor ficam em{" "}
+            <Link to="/equipe" className="text-placa underline">
+              Equipe
+            </Link>
+            .
+          </p>
+          <Card>
             <h3 className="text-xl font-semibold">Quando a IA passa o cliente</h3>
             <div className="mt-3 space-y-3">
               <Toggle label="Avisar o vendedor no WhatsApp" hint="Ele recebe o resumo do cliente e o link da conversa." checked={s.handoff.notificar_vendedor} onChange={(v) => upd(["handoff", "notificar_vendedor"], v)} />
@@ -243,7 +293,7 @@ export default function SettingsPage() {
               <Field label="Lembrete de visita (horas antes)" value={s.followup.lembrete_horas_antes} onChange={(v) => upd(["followup", "lembrete_horas_antes"], Number(v) || 3)} />
               <TemplateField
                 label="Modelo para retomar depois de 24h"
-                hint="Variáveis: primeiro nome, carro de interesse."
+                hint="Variáveis: primeiro nome, modelo de interesse."
                 value={s.followup.template_reengajamento}
                 onChange={(v) => upd(["followup", "template_reengajamento"], v)}
               />
@@ -255,6 +305,10 @@ export default function SettingsPage() {
               />
             </Grid>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="respostas">
+          <QuickReplies />
         </TabsContent>
 
         <TabsContent value="integracoes">
@@ -326,58 +380,46 @@ function TemplateField({ label, hint, value, onChange }: { label: string; hint?:
   );
 }
 
-function Sellers() {
+function QuickReplies() {
   const qc = useQueryClient();
-  const list = useQuery({ queryKey: ["vendedores"], queryFn: () => get<Seller[]>("/api/vendedores") });
-  const [nome, setNome] = useState("");
-  const [zap, setZap] = useState("");
-  const refresh = () => qc.invalidateQueries({ queryKey: ["vendedores"] });
-  const add = useMutation({ mutationFn: () => post("/api/vendedores", { nome, whatsapp: zap }), onSuccess: () => (setNome(""), setZap(""), refresh()), onError: (e: Error) => toast.error(e.message) });
-  const upd = useMutation({ mutationFn: (s: Partial<Seller> & { id: number }) => put(`/api/vendedores/${s.id}`, s), onSuccess: refresh });
-  const remove = useMutation({ mutationFn: (id: number) => del(`/api/vendedores/${id}`), onSuccess: refresh });
-
+  const list = useQuery({ queryKey: ["respostas-rapidas"], queryFn: () => get<QuickReply[]>("/api/respostas-rapidas") });
+  const [atalho, setAtalho] = useState("");
+  const [texto, setTexto] = useState("");
+  const refresh = () => qc.invalidateQueries({ queryKey: ["respostas-rapidas"] });
+  const add = useMutation({ mutationFn: () => post("/api/respostas-rapidas", { atalho, texto }), onSuccess: () => (setAtalho(""), setTexto(""), refresh()), onError: (e: Error) => toast.error(e.message) });
+  const remove = useMutation({ mutationFn: (id: number) => del(`/api/respostas-rapidas/${id}`), onSuccess: refresh });
   return (
     <Card>
-      <h3 className="text-xl font-semibold">Vendedores</h3>
-      <p className="mt-1 text-sm text-muted-foreground">Os leads são distribuídos em rodízio entre os vendedores ativos: quem recebeu menos recebe o próximo.</p>
+      <h3 className="text-xl font-semibold">Respostas rápidas da equipe</h3>
+      <p className="mt-1 text-sm text-muted-foreground">Textos prontos que o vendedor insere com um toque na conversa (dados para transferência, documentos, endereço…).</p>
       <ul className="mt-3 divide-y rounded-md border">
-        {(list.data ?? []).map((s) => (
-          <li key={s.id} className="flex flex-wrap items-center gap-3 px-3 py-2">
-            <span className="min-w-0 flex-1">
-              <span className="block font-medium">{s.nome}</span>
-              <span className={cn("block text-sm", s.whatsapp ? "text-muted-foreground" : "text-sinal")}>{s.whatsapp ? phone(s.whatsapp) : "Falta o WhatsApp"}</span>
-            </span>
-            <span className="text-sm text-muted-foreground">
-              <span className="num text-base text-asfalto">{s.leads_recebidos}</span> leads
-            </span>
-            <Switch checked={s.ativo} onCheckedChange={(ativo) => upd.mutate({ id: s.id, ativo })} aria-label={`${s.nome} recebe leads`} disabled={!s.whatsapp && !s.ativo} />
-            {!s.whatsapp && (
-              <Input
-                placeholder="5521999998888"
-                className="w-40"
-                onBlur={(e) => e.target.value && upd.mutate({ id: s.id, whatsapp: e.target.value.replace(/\D/g, ""), ativo: true })}
-                aria-label={`WhatsApp de ${s.nome}`}
-              />
-            )}
-            <Button variant="ghost" size="icon-sm" onClick={() => confirm(`Remover ${s.nome}?`) && remove.mutate(s.id)} aria-label={`Remover ${s.nome}`}>
+        {list.data?.map((r) => (
+          <li key={r.id} className="flex items-start gap-3 px-3 py-2">
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">{r.atalho}</p>
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">{r.texto}</p>
+            </div>
+            <Button variant="ghost" size="icon-sm" onClick={() => remove.mutate(r.id)} aria-label={`Apagar ${r.atalho}`}>
               <Trash2 />
             </Button>
           </li>
         ))}
-        {list.data?.length === 0 && <li className="px-3 py-3 text-sm text-muted-foreground">Nenhum vendedor cadastrado. Sem vendedor, a IA pausa e o lead fica esperando no painel.</li>}
+        {list.data?.length === 0 && <li className="px-3 py-3 text-sm text-muted-foreground">Nenhuma ainda.</li>}
       </ul>
       <form
-        className="mt-3 flex flex-wrap gap-2"
+        className="mt-4 grid gap-3"
         onSubmit={(e) => {
           e.preventDefault();
           add.mutate();
         }}
       >
-        <Input placeholder="Nome" value={nome} onChange={(e) => setNome(e.target.value)} className="w-44" aria-label="Nome do vendedor" />
-        <Input placeholder="WhatsApp com DDD (5521…)" value={zap} onChange={(e) => setZap(e.target.value)} className="w-56" aria-label="WhatsApp do vendedor" />
-        <Button type="submit" variant="outline" disabled={!nome || zap.replace(/\D/g, "").length < 10}>
-          <Plus /> Adicionar vendedor
-        </Button>
+        <Input placeholder="Nome (ex.: Documentos para financiar)" value={atalho} onChange={(e) => setAtalho(e.target.value)} aria-label="Nome da resposta" />
+        <Textarea rows={3} placeholder="Texto que vai para o cliente" value={texto} onChange={(e) => setTexto(e.target.value)} aria-label="Texto da resposta" />
+        <div>
+          <Button type="submit" variant="outline" disabled={!atalho || !texto}>
+            <Plus /> Adicionar resposta
+          </Button>
+        </div>
       </form>
     </Card>
   );
@@ -388,22 +430,28 @@ function Integrations({ conversoes, onChange }: { conversoes: Settings["converso
   const m = me.data;
   if (!m) return <Skeleton className="h-60" />;
   const items = [
-    { ok: m.whatsapp_configurado, t: "WhatsApp Cloud API", d: m.whatsapp_configurado ? "Número conectado. As mensagens chegam e saem pela API oficial." : "Preencha WA_PHONE_NUMBER_ID, WA_ACCESS_TOKEN e WA_APP_SECRET no arquivo .env do servidor." },
+    { ok: m.whatsapp_configurado, t: "WhatsApp Cloud API", d: m.whatsapp_configurado ? "Número desta loja conectado. As mensagens chegam e saem pela API oficial." : "O administrador conecta o número desta loja em Lojas, WhatsApp e Meta." },
     { ok: m.ia.provedor === "anthropic", t: "Inteligência artificial", d: m.ia.provedor === "anthropic" ? `Claude (${m.ia.modelo}), esforço ${m.ia.esforco}.` : "Modo de teste. Coloque ANTHROPIC_API_KEY no .env para ligar o Claude." },
     { ok: m.transcricao, t: "Transcrição de áudio", d: m.transcricao ? "Áudios dos clientes são transcritos e a IA responde normalmente." : "Opcional. Sem ela, a IA pede com educação para o cliente escrever. Configure OPENAI_API_KEY para ativar." },
-    { ok: m.conversoes_configuradas, t: "Conversões para os anúncios (Meta)", d: m.conversoes_configuradas ? "Leads, visitas e vendas de quem veio por anúncio voltam para a Meta." : "Preencha META_DATASET_ID e WA_WABA_ID no .env para a campanha otimizar por lead e venda, não só por conversa." },
+    { ok: m.conversoes_configuradas, t: "Conversões para os anúncios (Meta)", d: m.conversoes_configuradas ? "Leads, simulações, visitas e vendas de quem veio por anúncio voltam para a Meta." : "O administrador informa o ID do dataset da loja em Lojas, WhatsApp e Meta." },
   ];
   return (
     <div className="space-y-5">
       {m.senha_padrao && (
         <p className="flex items-center gap-2 rounded-md border border-sinal/40 bg-sinal/5 px-4 py-3 text-sm">
-          <TriangleAlert className="size-4 text-sinal" /> A senha do painel ainda é a padrão. Defina ADMIN_PASSWORD no .env antes de colocar no ar.
+          <TriangleAlert className="size-4 text-sinal" /> Sua senha de administrador ainda é a padrão. Troque em Minha conta.
         </p>
       )}
       <Card>
         <h3 className="text-xl font-semibold">Endereço do webhook</h3>
-        <p className="mt-1 text-sm text-muted-foreground">Cole no app da Meta, em WhatsApp, Configuração, Webhook. Assine o campo “messages”.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Cole no app da Meta, em WhatsApp, Configuração, Webhook. Assine o campo “messages”. É o mesmo endereço para todas as lojas.</p>
         <CopyLine value={m.webhook_url} />
+        {m.verify_token && (
+          <>
+            <p className="mt-3 text-sm text-muted-foreground">Token de verificação</p>
+            <CopyLine value={m.verify_token} />
+          </>
+        )}
       </Card>
       <Card>
         <ul className="space-y-4">

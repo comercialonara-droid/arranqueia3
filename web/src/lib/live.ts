@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { withStore } from "./api";
 
 export type LiveEvent =
   | { type: "message"; contactId: number; messageId: number }
@@ -15,11 +16,11 @@ export const onLive = (fn: (e: LiveEvent) => void) => {
 };
 
 /** Conecta no stream do servidor e atualiza as telas quando chega mensagem, lead ou visita. */
-export function useLiveUpdates(enabled: boolean) {
+export function useLiveUpdates(enabled: boolean, storeKey: number | null = null) {
   const qc = useQueryClient();
   useEffect(() => {
     if (!enabled) return;
-    const es = new EventSource("/api/stream", { withCredentials: true });
+    const es = new EventSource(withStore("/api/stream"), { withCredentials: true });
     let timer: number | undefined;
     const pending = new Set<string>();
     const invalidate = (key: string) => {
@@ -36,7 +37,10 @@ export function useLiveUpdates(enabled: boolean) {
       if (e.type === "typing") return;
       invalidate(JSON.stringify(["conversas"]));
       invalidate(JSON.stringify(["conversa", e.contactId]));
-      if (e.type === "lead" || e.type === "contact") invalidate(JSON.stringify(["leads"]));
+      if (e.type === "lead" || e.type === "contact") {
+        invalidate(JSON.stringify(["leads"]));
+        invalidate(JSON.stringify(["simulacoes"]));
+      }
       if (e.type === "appointment") invalidate(JSON.stringify(["agenda"]));
       invalidate(JSON.stringify(["stats"]));
     };
@@ -44,5 +48,5 @@ export function useLiveUpdates(enabled: boolean) {
       es.close();
       window.clearTimeout(timer);
     };
-  }, [enabled, qc]);
+  }, [enabled, qc, storeKey]);
 }

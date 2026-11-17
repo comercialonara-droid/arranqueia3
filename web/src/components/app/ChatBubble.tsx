@@ -55,10 +55,11 @@ export function ChatBubble({ m, showSender }: { m: Message; showSender: boolean 
           )}
           {m.type === "audio" && (
             <div className="mb-1 flex items-center gap-2 text-muted-foreground">
-              <Mic className="size-4" /> Áudio
-              {media.url && <audio controls src={media.url} className="h-8 max-w-[220px]" />}
+              <Mic className="size-4 shrink-0" />
+              {media.url ? <audio controls src={media.url} className="h-8 max-w-[230px]" preload="none" /> : "Áudio"}
             </div>
           )}
+          {m.type === "video" && media.url && <video src={media.url} controls preload="metadata" className="max-h-72 w-full rounded-md bg-black" />}
           {m.type === "document" && (
             <p className="flex items-center gap-2 text-muted-foreground">
               <FileText className="size-4" /> {m.meta?.filename ?? "Documento"}
@@ -71,7 +72,7 @@ export function ChatBubble({ m, showSender }: { m: Message; showSender: boolean 
             </p>
           )}
           {m.type === "template" && <p className="mb-1 text-xs text-muted-foreground">Mensagem de modelo (template)</p>}
-          {m.body && m.type !== "location" && (
+          {m.body && m.type !== "location" && (m.type !== "audio" || out) && (
             <div className={cn(isImg && "px-2 pb-1 pt-1.5")}>
               <WaText text={m.body} />
             </div>
