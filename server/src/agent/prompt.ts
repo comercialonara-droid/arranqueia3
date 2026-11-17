@@ -3,6 +3,7 @@ import { hoursText, isOpenNow } from "../services/schedule.js";
 import { appointments, audios, simulations, vehicles, vehicleTitle } from "../db/repos.js";
 import { brl, formatDateTimeBR, humanNow } from "../util/time.js";
 import { profileOf } from "../segments.js";
+import { campaigns } from "../marketing/repo.js";
 
 /**
  * Prompt fixo do vendedor. Só muda quando a loja altera configurações ou áudios — por isso não leva
@@ -45,9 +46,9 @@ Exemplos do tom certo e errado:
 
 # O caminho da conversa
 1. Entenda a intenção. Logo no começo, descubra o que a pessoa quer: só saber se ${p.o} está disponível, ver fotos/vídeos, saber como fica pra comprar, ou ir na loja. Registre com atualizar_ficha (campo intencao) e atualize quando mudar.
-2. Atenda o que ela pediu, sem empurrar. Quer foto? Manda (enviar_fotos). Tem vídeo? Oferece (enviar_videos). Quer saber ${p.id === "veiculos" ? "km, ano, opcionais" : "autonomia, bateria, motor"}? Responde com o que a ferramenta trouxe.
+2. Atenda o que ela pediu, sem empurrar. Quer foto? Manda (enviar_fotos). Tem vídeo? Oferece (enviar_videos). Quer saber ${p.id === "bikes_eletricas" ? "autonomia, bateria, motor" : p.id === "motos" ? "km, ano, cilindrada, consumo" : "km, ano, opcionais"}? Responde com o que a ferramenta trouxe.
 3. Perceba o interesse e ofereça a simulação. Quando a pessoa demonstrar interesse real (gostou ${p.do}, perguntou de entrada, parcela, financiamento, troca, "como faço pra comprar"), ofereça a simulação como algo simples e sem compromisso: "Quer que eu já veja uma simulação pra você? É rapidinho e você não precisa vir aqui pra saber se aprova." Se ela não quiser agora, tudo bem — continue ajudando e ofereça de novo mais tarde, numa hora boa, sem insistir a cada mensagem.
-4. Entenda como ela quer pagar. As formas comuns nesta loja: ${p.formas_pagamento}. Pergunte de forma natural${a.aceita_troca ? ` ("Você pensa em dar ${p.troca_item === "carro" ? "algum carro" : "alguma " + p.troca_item.split(",")[0]} na troca ou seria entrada em dinheiro?")` : ` ("Você pensa em pagar à vista ou parcelado?")`}. Registre forma_pagamento e entrada.${a.aceita_troca ? ` Se tiver ${p.troca_item} na troca, colete com registrar_troca: modelo, ano, ${p.id === "veiculos" ? "km, " : ""}se é quitado e fotos.` : ""}
+4. Entenda como ela quer pagar. As formas comuns nesta loja: ${p.formas_pagamento}. Pergunte de forma natural${a.aceita_troca ? ` ("Você pensa em dar ${p.troca_item === "carro" ? "algum carro" : "alguma " + p.troca_item.split(",")[0]} na troca ou seria entrada em dinheiro?")` : ` ("Você pensa em pagar à vista ou parcelado?")`}. Registre forma_pagamento e entrada.${a.aceita_troca ? ` Se tiver ${p.troca_item} na troca, colete com registrar_troca: modelo, ano, ${p.esconder.includes("km") ? "" : "km, "}se é quitado e fotos.` : ""}
 5. Colete os dados da simulação aos poucos: nome completo${dadosSim ? `, ${dadosSim}` : ""}. Antes de pedir o CPF, diga em uma frase para que serve: "${sim.texto_privacidade}" Peça um ou dois dados por mensagem. Vá salvando com registrar_dados_simulacao — ela confere o CPF e a data e diz o que falta. Se o CPF vier errado, peça para conferir sem dar bronca.
 6. Quando estiver completo, avise que ${consultor} vai rodar a simulação e chamar por aqui mesmo em instantes, e use enviar_simulacao_para_vendedor. A partir daí você sai da conversa.
 7. Visita: se a pessoa quiser ver ${p.o} pessoalmente${p.test_drive ? ` ou fazer um ${p.test_drive}` : ""}, use horarios_disponiveis e agendar_visita (depois de ela confirmar dia e hora) e mande a localização. Quem quer vir à loja também pode fazer a simulação antes — sugira, porque assim ela já vem sabendo que aprovou.
@@ -62,7 +63,7 @@ ${
 - Se perguntarem o preço: não fuja e não enrole. Diga com simpatia que o valor e a condição certinha o consultor passa junto com a simulação, que é rapidinha, e ofereça fazer agora. Ex.: "O valor certinho e a melhor condição pra você o consultor passa na simulação, que é rapidinha. Quer que eu já encaminhe a sua?"
 - Se a pessoa citar uma condição do anúncio ("vi que é 20 mil de entrada"), confirme que é a condição que a loja está divulgando e diga que na simulação o consultor confirma o valor para o perfil dela. Não invente nem calcule números.
 - Se insistir muito no preço e não quiser simulação, transfira (transferir_para_vendedor, motivo negociacao_de_preco).
-${p.id === "veiculos" ? "- Pode dizer que o carro está abaixo da FIPE quando a ferramenta indicar, sem citar valores." : ""}`
+${!p.esconder.includes("fipe") ? `- Pode dizer que ${p.o} está abaixo da FIPE quando a ferramenta indicar, sem citar valores.` : ""}`
     : a.politica_preco === "parcela_primeiro"
       ? "- Pode informar o preço quando perguntarem, mas lidere pela condição (entrada + parcela). Contas de parcela são aproximadas (simular_financiamento) e sempre sujeitas à análise de crédito; a simulação de verdade é com o consultor."
       : "- Informe o preço quando perguntarem. Contas de parcela são aproximadas (simular_financiamento) e sempre sujeitas à análise; a simulação de verdade é com o consultor."
@@ -120,6 +121,12 @@ export function buildTurnContext(s: StoreSettings, contact: Contact, lead: Lead,
   if (nome) lines.push(`Cliente: ${contact.nome ? contact.nome : `${contact.nome_perfil} (nome do perfil do WhatsApp)`}.`);
   if (contact.ad_headline || contact.ctwa_clid) lines.push(`Veio de anúncio${contact.ad_headline ? `: "${contact.ad_headline}"` : ""}. Se o anúncio era de um produto, comece por ele.`);
 
+  const camp = contact.campaign_id ? campaigns.get(contact.campaign_id, contact.store_id) : null;
+  if (camp?.plano) {
+    lines.push(
+      `Veio da campanha "${camp.nome}". Oferta anunciada: ${camp.plano.oferta_principal}. Como atender quem vem dela: ${camp.plano.integracao_atendimento.slice(0, 4).join(" ")}`,
+    );
+  }
   const sim = simulations.latest(contact.id);
   if (sim) {
     const tem = [sim.nome_completo && "nome completo", sim.cpf_enc && "CPF", sim.data_nascimento && "nascimento", sim.tem_cnh != null && "CNH"].filter(Boolean);

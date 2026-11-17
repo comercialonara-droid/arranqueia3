@@ -10,6 +10,18 @@ Marca e manual de identidade: [docs/marca](docs/marca/README.md).
 
 ---
 
+## Novidades da versão 3: marketing com IA
+
+- **Questionário da loja** (região, cliente, ticket, margem, meta, oferta, verba, canais, conteúdo, equipe), que a IA lê antes de criar qualquer campanha.
+- **IA estrategista (Claude)**: cria o plano completo da campanha de tráfego pago: públicos, estrutura, anúncios prontos com roteiro de criativo, orçamento por fase, metas, cronograma e regras de otimização.
+- **Resultados até a venda**: investimento, custo por lead, qualificados, simulações, visitas, vendas, custo por venda, receita, ROAS e ROI, por campanha e da loja toda.
+- **Conta de anúncios da Meta**: investimento e cliques entram sozinhos (Marketing API, a cada 3 horas). Sem conta, lança-se o dia na mão.
+- **Lead ligado à campanha** pelo anúncio que o cliente clicou; a IA de atendimento recebe as orientações da campanha.
+- **IA analista**: lê os números e devolve diagnóstico e ações.
+- **Segmento motos**, além de carros e bicicletas elétricas.
+
+Guia: [docs/guia-marketing.md](docs/guia-marketing.md).
+
 ## Novidades da versão 2.1
 
 - **Cada cliente é separado de ponta a ponta.** Conversas, estoque, biblioteca de áudios, respostas prontas, notas, simulações, agenda, equipe, configurações, números de WhatsApp e arquivos (fotos, vídeos e áudios ficam em pastas `loja-N`) são só da loja. Dono e vendedor nunca enxergam outra loja, nem forçando o endereço. A mesma pessoa que fala com duas lojas vira duas conversas diferentes. Isso é verificado em testes automáticos (`server/test/isolation.test.ts`).

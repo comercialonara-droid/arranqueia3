@@ -8,6 +8,7 @@ import { config } from "./config.js";
 import { log } from "./util/log.js";
 import { registerWebhook } from "./whatsapp/webhook.js";
 import { registerAdmin } from "./api/admin.js";
+import { registerMarketing } from "./api/marketing.js";
 import { registerMedia } from "./api/media.js";
 import { startScheduler } from "./services/followups.js";
 import { db } from "./db/index.js";
@@ -47,6 +48,7 @@ export async function buildApp() {
 
   registerWebhook(app);
   registerAdmin(app);
+  registerMarketing(app);
 
   if (webDist) {
     const sendIndex = (reply: any) =>

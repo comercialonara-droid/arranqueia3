@@ -302,6 +302,7 @@ export const contacts = {
       "ad_headline",
       "ad_source_url",
       "origem",
+      "campaign_id",
       "tags",
       "ai_cursor",
     ] as const;

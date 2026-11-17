@@ -4,8 +4,8 @@
  */
 import type { StoreSettings } from "./types.js";
 
-export type Segmento = "veiculos" | "bikes_eletricas";
-export const SEGMENTOS: Segmento[] = ["veiculos", "bikes_eletricas"];
+export type Segmento = "veiculos" | "motos" | "bikes_eletricas";
+export const SEGMENTOS: Segmento[] = ["veiculos", "motos", "bikes_eletricas"];
 
 export interface SpecField {
   chave: string;
@@ -119,7 +119,43 @@ const BIKES: SegmentProfile = {
   saudacao_exemplo: "Oi! Tem sim, a V9 Max tá aqui na loja 😊 Quer ver um vídeo dela andando?",
 };
 
-export const PROFILES: Record<Segmento, SegmentProfile> = { veiculos: VEICULOS, bikes_eletricas: BIKES };
+const MOTOS: SegmentProfile = {
+  id: "motos",
+  nome: "Motos",
+  tipo_loja: "loja de motos",
+  produto: "moto",
+  produtos: "motos",
+  o: "a moto",
+  um: "uma moto",
+  do: "da moto",
+  esse: "essa moto",
+  dele: "dela",
+  exemplo_nome: "a CG 160",
+  exemplos_nome: '"a CG 160", "a XRE 300 2023"',
+  test_drive: "test ride",
+  esconder: ["portas", "cambio"],
+  ficha: [
+    { chave: "cilindrada_cc", rotulo: "Cilindrada", unidade: "cc", numerico: true, exemplo: "160" },
+    { chave: "partida", rotulo: "Partida", exemplo: "elétrica" },
+    { chave: "freios", rotulo: "Freios", exemplo: "CBS / ABS" },
+    { chave: "consumo_kml", rotulo: "Consumo", unidade: "km/l", numerico: true, exemplo: "40" },
+    { chave: "revisoes", rotulo: "Revisões / garantia", exemplo: "revisada, garantia de 3 meses" },
+  ],
+  categorias: ["street", "naked", "trail", "big_trail", "scooter", "custom", "esportiva", "eletrica"],
+  sinonimos: {
+    trail: ["trail", "off road", "terra", "xre", "bros", "lander"],
+    scooter: ["scooter", "automatica", "pcx", "nmax", "biz"],
+    economica: ["economica", "econômica", "gasta pouco", "consumo"],
+    entrega: ["entrega", "motoboy", "ifood", "aplicativo"],
+  },
+  formas_pagamento: "financiamento; moto usada na troca + dinheiro; moto na troca + financiamento; à vista; consórcio; cartão parcelado",
+  troca_item: "moto",
+  foco_atendimento:
+    "Quem compra moto quer saber de cilindrada, consumo, km, ano, revisões, documentação e se a parcela cabe no bolso. Muita gente usa para trabalhar com entrega: pergunte o uso para indicar o modelo certo. Sobre CNH e regras de trânsito, não afirme nada por conta própria.",
+  saudacao_exemplo: "Oi! Tem sim, a CG 160 tá aqui na loja 😊 Quer que eu te mande umas fotos dela?",
+};
+
+export const PROFILES: Record<Segmento, SegmentProfile> = { veiculos: VEICULOS, motos: MOTOS, bikes_eletricas: BIKES };
 
 export function profileOf(s: Pick<StoreSettings, "loja">): SegmentProfile {
   return PROFILES[(s.loja.segmento as Segmento) ?? "veiculos"] ?? VEICULOS;
@@ -141,6 +177,12 @@ export function segmentDefaults(seg: Segmento): Record<string, unknown> {
       },
       simulacao: { ativa: true, pedir_cpf: false, pedir_nascimento: false, pedir_cnh: false },
       financiamento: { modo: "tabela_price", taxa_mensal_pct: 2.49, prazos: [10, 12, 18, 21], entrada_minima_pct: 0, observacao: "Parcelamento no cartão; valores aproximados." },
+      agenda: { duracao_min: 30 },
+    };
+  if (seg === "motos")
+    return {
+      loja: { segmento: "motos", tipo_loja: MOTOS.tipo_loja },
+      atendimento: { diferenciais: ["Motos revisadas", "Aceitamos sua moto na troca", "Financiamento facilitado"], garantia: "Garantia de motor e câmbio conforme a lei." },
       agenda: { duracao_min: 30 },
     };
   return { loja: { segmento: "veiculos", tipo_loja: VEICULOS.tipo_loja } };

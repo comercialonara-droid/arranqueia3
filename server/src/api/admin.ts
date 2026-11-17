@@ -5,6 +5,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { config } from "../config.js";
 import { storeDir } from "../util/storage.js";
+import { campaigns } from "../marketing/repo.js";
 import { PROFILES, SEGMENTOS, profileOf, segmentDefaults, type Segmento } from "../segments.js";
 import { db, nowIso } from "../db/index.js";
 import {
@@ -260,6 +261,11 @@ export function registerAdmin(app: FastifyInstance) {
       if (typeof b.nome === "string") patch.nome = b.nome;
       if (Array.isArray(b.tags)) patch.tags = (b.tags as unknown[]).map(String).map((t) => t.trim()).filter(Boolean).slice(0, 12);
       if (typeof b.opt_out === "boolean") patch.opt_out = b.opt_out;
+      if ("campaign_id" in b) {
+        const camp = b.campaign_id == null ? null : campaigns.get(Number(b.campaign_id), c.store_id);
+        if (b.campaign_id != null && !camp) return reply.code(400).send({ erro: "Campanha inválida." });
+        patch.campaign_id = camp?.id ?? null;
+      }
       if ("seller_id" in b) {
         const target = b.seller_id == null ? null : users.get(Number(b.seller_id));
         if (b.seller_id != null && (!target || target.store_id !== c.store_id)) return reply.code(400).send({ erro: "Vendedor inválido." });

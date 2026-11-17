@@ -3,6 +3,7 @@ import path from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config.js";
 import { storeDir } from "../util/storage.js";
+import { matchCampaign } from "../marketing/repo.js";
 import { nowIso } from "../db/index.js";
 import { contacts, events, messages, stores } from "../db/repos.js";
 import type { Channel, MessageRow } from "../types.js";
@@ -86,7 +87,10 @@ export async function receive(inb: Inbound): Promise<MessageRow | null> {
       ad_source_url: inb.referral.source_url ?? contact.ad_source_url,
       origem: "anuncio",
     });
-    events.add(contact.store_id, contact.id, "entrada_anuncio", { ...inb.referral });
+    // liga o lead à campanha de tráfego que o trouxe (resultado e contexto para a IA)
+    const campaignId = matchCampaign(contact.store_id, inb.referral);
+    if (campaignId) contacts.update(contact.id, { campaign_id: campaignId });
+    events.add(contact.store_id, contact.id, "entrada_anuncio", { ...inb.referral, campaign_id: campaignId });
   } else if (!contact.origem) {
     contacts.update(contact.id, { origem: "organico" });
   }

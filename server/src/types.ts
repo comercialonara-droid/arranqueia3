@@ -91,6 +91,8 @@ export interface Contact {
   ctwa_clid: string | null;
   ad_id: string | null;
   ad_headline: string | null;
+  /** campanha de tráfego que trouxe o lead (módulo de marketing) */
+  campaign_id?: number | null;
   ad_source_url: string | null;
   origem: string | null;
   tags: string[];
@@ -262,7 +264,7 @@ export interface StoreSettings {
   loja: {
     nome: string;
     /** segmento da loja: muda vocabulário da IA, ficha do produto e busca */
-    segmento: "veiculos" | "bikes_eletricas";
+    segmento: "veiculos" | "motos" | "bikes_eletricas";
     /** como a IA descreve a loja ("loja de seminovos", "loja de bicicletas elétricas") */
     tipo_loja: string;
     cidade: string;

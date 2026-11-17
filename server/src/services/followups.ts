@@ -1,3 +1,4 @@
+import { syncAllStores } from "../marketing/meta-ads.js";
 import { profileOf } from "../segments.js";
 import { db } from "../db/index.js";
 import { appointments, contacts, followups, leads, stores, vehicles, vehicleShort } from "../db/repos.js";
@@ -129,5 +130,9 @@ export function startScheduler() {
   };
   const t = setInterval(tick, 60_000);
   t.unref();
+  // resultados das campanhas na Meta: a cada 3 horas
+  const ads = setInterval(() => void syncAllStores(), 3 * 3600_000);
+  ads.unref();
+  setTimeout(() => void syncAllStores(), 60_000).unref();
   setTimeout(tick, 5_000).unref();
 }

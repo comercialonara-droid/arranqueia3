@@ -121,12 +121,17 @@ export function vehicleCard(settings: StoreSettings, v: Vehicle, entrada?: numbe
     if (melhor) parcela_estimada = `entrada ${brl(sim.entrada)} + ${melhor.prazo}x de ${brl(melhor.parcela)}`;
   }
   const p = profileOf(settings);
-  const carro = p.id === "veiculos";
+  const show = (k: string) => !p.esconder.includes(k);
+  const carro = show("fipe");
   return {
     id: v.id,
     titulo: vehicleTitle(v),
     como_chamar: vehicleShort(v),
-    ...(carro ? { km: kmFmt(v.km), cambio: v.cambio, combustivel: v.combustivel } : { tipo: v.carroceria ?? undefined, ficha: specLines(p, v.ficha) }),
+    ...(show("km") ? { km: kmFmt(v.km) } : {}),
+    ...(show("cambio") ? { cambio: v.cambio } : {}),
+    ...(show("combustivel") ? { combustivel: v.combustivel } : {}),
+    ...(p.id !== "veiculos" ? { tipo: v.carroceria ?? undefined } : {}),
+    ...(p.ficha.length ? { ficha: specLines(p, v.ficha) } : {}),
     cor: v.cor,
     ...(semValores
       ? { valores: "não informar: preço e condições só com o consultor, na simulação" }

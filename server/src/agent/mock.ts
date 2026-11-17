@@ -48,9 +48,10 @@ const ASK: Record<string, string> = {
 /** No modo de teste, a loja de bikes recebe as mesmas respostas com o vocabulário dela. */
 export function mockRespond(messages: Param[], system = ""): Anthropic.Beta.BetaMessage {
   const r = mockRespondCars(messages);
-  if (!/bicicletas el[eé]tricas/i.test(system.slice(0, 400))) return r;
-  const p = PROFILES.bikes_eletricas;
-  for (const b of r.content as any[]) if (b.type === "text") b.text = vocab(b.text, p).replace("🚗", "⚡");
+  const head = system.slice(0, 400);
+  const p = /bicicletas el[eé]tricas/i.test(head) ? PROFILES.bikes_eletricas : /loja de motos/i.test(head) ? PROFILES.motos : null;
+  if (!p) return r;
+  for (const b of r.content as any[]) if (b.type === "text") b.text = vocab(b.text, p).replace("🚗", p.id === "motos" ? "🏍️" : "⚡");
   return r;
 }
 
