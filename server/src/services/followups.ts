@@ -1,5 +1,6 @@
+import { profileOf } from "../segments.js";
 import { db } from "../db/index.js";
-import { appointments, contacts, followups, leads, vehicles, vehicleTitle } from "../db/repos.js";
+import { appointments, contacts, followups, leads, stores, vehicles, vehicleShort } from "../db/repos.js";
 import { getSettings } from "../db/settings.js";
 import type { Contact } from "../types.js";
 import { log } from "../util/log.js";
@@ -17,21 +18,23 @@ function quietHours() {
 }
 
 async function visitReminders() {
-  const s = getSettings();
   const now = Date.now();
-  const due = appointments.dueReminders(new Date(now).toISOString(), new Date(now + s.followup.lembrete_horas_antes * 3600_000).toISOString());
+  // janela máxima de 24h; cada loja usa a sua antecedência
+  const due = appointments.dueReminders(new Date(now).toISOString(), new Date(now + 24 * 3600_000).toISOString());
   for (const a of due) {
     const c = contacts.get(a.contact_id);
     if (!c) continue;
+    const s = getSettings(c.store_id);
+    if (new Date(a.inicio).getTime() - now > s.followup.lembrete_horas_antes * 3600_000) continue;
     appointments.update(a.id, { reminder_sent: true });
-    const v = a.vehicle_id ? vehicles.get(a.vehicle_id) : null;
+    const v = a.vehicle_id ? vehicles.get(a.vehicle_id, c.store_id) : null;
     const quando = formatDateTimeBR(new Date(a.inicio));
     if (c.channel === "simulador" || insideServiceWindow(c)) {
       await deliver(
         c,
         {
           type: "buttons",
-          body: `Oi, ${firstName(c)}! Passando para lembrar da sua visita ${quando} aqui na ${s.loja.nome}${v ? ` para ver o ${vehicleTitle(v)}` : ""}. Posso confirmar? 🙂`,
+          body: `Oi, ${firstName(c)}! Passando para lembrar da sua visita ${quando} aqui na ${s.loja.nome}${v ? ` para ver o ${vehicleShort(v)}` : ""}. Posso confirmar? 🙂`,
           buttons: [
             { id: "visita_confirmar", title: "Confirmar" },
             { id: "visita_remarcar", title: "Remarcar" },
@@ -50,8 +53,13 @@ async function visitReminders() {
 }
 
 async function noReplyFollowups() {
-  const s = getSettings();
-  if (!s.followup.ativo || quietHours()) return;
+  if (quietHours()) return;
+  for (const store of stores.all().filter((x) => x.ativo)) await noReplyForStore(store.id);
+}
+
+async function noReplyForStore(storeId: number) {
+  const s = getSettings(storeId);
+  if (!s.followup.ativo) return;
   const steps = [...s.followup.horas].sort((a, b) => a - b);
   if (!steps.length) return;
 
@@ -63,12 +71,12 @@ async function noReplyFollowups() {
        FROM contacts c
        JOIN messages m ON m.id = (SELECT MAX(id) FROM messages WHERE contact_id = c.id)
        JOIN leads l ON l.contact_id = c.id
-       WHERE m.direction = 'out' AND m.sender = 'ia' AND c.opt_out = 0 AND c.channel = 'whatsapp'
+       WHERE c.store_id = ? AND m.direction = 'out' AND m.sender = 'ia' AND c.opt_out = 0 AND c.channel = 'whatsapp'
          AND l.stage NOT IN ('vendido','perdido')
          AND (c.bot_paused_until IS NULL OR c.bot_paused_until < strftime('%Y-%m-%dT%H:%M:%fZ','now'))
          AND m.created_at > strftime('%Y-%m-%dT%H:%M:%fZ','now','-3 days')`,
     )
-    .all() as { contact_id: number; msg_id: number; out_at: string; last_in_id: number | null }[];
+    .all(storeId) as { contact_id: number; msg_id: number; out_at: string; last_in_id: number | null }[];
 
   for (const r of rows) {
     if (isBusy(r.contact_id)) continue;
@@ -84,7 +92,7 @@ async function noReplyFollowups() {
         await runAgentTurn(c.id, [{ type: "text", text: "[o cliente não respondeu desde a sua última mensagem]" }], {
           extraContext: [
             `Retomada automática: o cliente está sem responder há ${Math.round(hours)}h. Mande UMA mensagem curta, leve e diferente das anteriores para retomar ` +
-              `(ex.: perguntar se conseguiu ver as fotos, oferecer um horário para ver o carro, avisar de uma condição). Sem pressão. ` +
+              `(ex.: perguntar se conseguiu ver as fotos, oferecer a simulação rapidinha, oferecer um horário para ver ${profileOf(s).o} na loja). Sem pressão. ` +
               `Se não fizer sentido retomar (o cliente se despediu, disse que vai pensar agora há pouco, já está tudo resolvido), responda apenas [SEM_RESPOSTA].`,
           ],
         });
@@ -94,10 +102,10 @@ async function noReplyFollowups() {
     } else if (s.followup.template_reengajamento && followups.claim(c.id, "template_reengajamento", period)) {
       const t = s.followup.template_reengajamento;
       const lead = leads.get(c.id);
-      const v = lead?.interesse[0] ? vehicles.get(lead.interesse[0]) : null;
+      const v = lead?.interesse[0] ? vehicles.get(lead.interesse[0], c.store_id) : null;
       await deliver(
         c,
-        { type: "template", name: t.nome, language: t.idioma, params: [firstName(c), v ? vehicleTitle(v) : "o carro que você viu"], preview: "Mensagem de retomada (template)" },
+        { type: "template", name: t.nome, language: t.idioma, params: [firstName(c), v ? vehicleShort(v) : `${profileOf(s).o} que você viu`], preview: "Mensagem de retomada (template)" },
         "ia",
         { automatico: "reengajamento" },
       );

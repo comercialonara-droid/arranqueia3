@@ -1,9 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
-import { config, isWhatsAppConfigured } from "../config.js";
+import { config } from "../config.js";
+import { storeDir } from "../util/storage.js";
 import { nowIso } from "../db/index.js";
-import { contacts, events, messages } from "../db/repos.js";
+import { contacts, events, messages, stores } from "../db/repos.js";
 import type { Channel, MessageRow } from "../types.js";
 import { publish } from "../util/bus.js";
 import { log } from "../util/log.js";
@@ -25,6 +26,7 @@ export interface Referral {
 }
 
 export interface Inbound {
+  storeId: number;
   channel: Channel;
   waId: string;
   profileName: string | null;
@@ -48,8 +50,8 @@ export interface Inbound {
 const extFor = (mime: string) =>
   mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : mime.includes("gif") ? "gif" : mime.includes("jpeg") || mime.includes("jpg") ? "jpg" : mime.includes("ogg") ? "ogg" : mime.includes("mpeg") ? "mp3" : mime.includes("mp4") ? "mp4" : "bin";
 
-function saveMedia(key: string, data: Buffer, mime: string) {
-  const file = `${key.replace(/[^a-zA-Z0-9_.-]/g, "_")}.${extFor(mime)}`;
+function saveMedia(storeId: number, key: string, data: Buffer, mime: string) {
+  const file = `${storeDir("media", storeId)}/${key.replace(/[^a-zA-Z0-9_.-]/g, "_")}.${extFor(mime)}`;
   fs.writeFileSync(path.join(config.dataDir, "media", file), data);
   return { file, mime, url: `/media/${file}` };
 }
@@ -72,8 +74,9 @@ function describe(inb: Inbound): string | null {
 
 /** Recebe uma mensagem do cliente (WhatsApp ou simulador), salva e agenda a resposta. */
 export async function receive(inb: Inbound): Promise<MessageRow | null> {
-  let contact = contacts.ensure(inb.waId, inb.profileName, inb.channel);
   if (messages.byWaId(inb.waMessageId)) return null; // reentrega do webhook
+  let contact = contacts.ensure(inb.storeId, inb.waId, inb.profileName, inb.channel);
+  const creds = inb.channel === "whatsapp" ? stores.creds(inb.storeId) : null;
 
   if (inb.referral && (inb.referral.ctwa_clid || inb.referral.source_id)) {
     contacts.update(contact.id, {
@@ -83,11 +86,11 @@ export async function receive(inb: Inbound): Promise<MessageRow | null> {
       ad_source_url: inb.referral.source_url ?? contact.ad_source_url,
       origem: "anuncio",
     });
-    events.add(contact.id, "entrada_anuncio", { ...inb.referral });
+    events.add(contact.store_id, contact.id, "entrada_anuncio", { ...inb.referral });
   } else if (!contact.origem) {
     contacts.update(contact.id, { origem: "organico" });
   }
-  if (!contact.last_inbound_at) events.add(contact.id, "nova_conversa", { origem: inb.referral ? "anuncio" : "organico" });
+  if (!contact.last_inbound_at) events.add(contact.store_id, contact.id, "nova_conversa", { origem: inb.referral ? "anuncio" : "organico" });
 
   // mídia
   let media: Record<string, unknown> | null = null;
@@ -95,9 +98,9 @@ export async function receive(inb: Inbound): Promise<MessageRow | null> {
   if (["image", "audio", "video", "document", "sticker"].includes(inb.type)) {
     try {
       let file = inb.mediaData ?? null;
-      if (!file && inb.mediaId && isWhatsAppConfigured()) file = await wa.downloadMedia(inb.mediaId);
+      if (!file && inb.mediaId && creds) file = await wa.downloadMedia(creds, inb.mediaId);
       if (file) {
-        media = saveMedia(inb.waMessageId, file.data, file.mime);
+        media = saveMedia(inb.storeId, inb.waMessageId, file.data, file.mime);
         if (inb.type === "audio") {
           const t = await transcribe(file.data, file.mime);
           if (t) meta.transcricao = t;
@@ -135,7 +138,7 @@ export async function receive(inb: Inbound): Promise<MessageRow | null> {
   if (inb.type === "reaction") return row; // reação sozinha não precisa de resposta
   if (contacts.isBotPaused(contact)) return row; // um humano está atendendo
 
-  if (inb.channel === "whatsapp" && isWhatsAppConfigured()) void wa.readAndTyping(inb.waMessageId);
+  if (creds) void wa.readAndTyping(creds, inb.waMessageId);
   publish({ type: "typing", contactId: contact.id, on: true });
   schedule(contact.id);
   return row;
@@ -285,7 +288,7 @@ async function processContact(contactId: number) {
     }
     failures.delete(contactId);
     contacts.update(contactId, { ai_cursor: newCursor });
-    events.add(contactId, "ia_falhou", { erro: (e as Error).message });
+    events.add(contact.store_id, contactId, "ia_falhou", { erro: (e as Error).message });
     const c = contacts.get(contactId)!;
     await deliver(c, { type: "text", body: "Oi! Recebi sua mensagem 🙂 Um consultor da loja já vai te responder por aqui." }, "sistema");
     const { handoff } = await import("../services/handoff.js");

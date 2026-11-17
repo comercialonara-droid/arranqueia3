@@ -1,5 +1,5 @@
-import { config, isWhatsAppConfigured } from "../config.js";
-import { contacts, messages } from "../db/repos.js";
+import { config } from "../config.js";
+import { contacts, messages, stores } from "../db/repos.js";
 import type { Contact, MessageRow, Sender } from "../types.js";
 import { publish } from "../util/bus.js";
 import { log } from "../util/log.js";
@@ -10,6 +10,7 @@ export type OutItem =
   | { type: "text"; body: string }
   | { type: "image"; url: string; caption?: string }
   | { type: "video"; url: string; caption?: string }
+  | { type: "audio"; url: string; titulo?: string }
   | { type: "buttons"; body: string; buttons: ButtonOpt[]; footer?: string }
   | { type: "list"; body: string; buttonText: string; rows: ListRow[] }
   | { type: "location"; lat: number; lng: number; name: string; address: string }
@@ -30,6 +31,8 @@ function bodyOf(item: OutItem): string | null {
     case "buttons":
     case "list":
       return item.body;
+    case "audio":
+      return item.titulo ? `🎤 ${item.titulo}` : "🎤 Áudio";
     case "location":
       return `📍 ${item.name} — ${item.address}`;
     case "contact":
@@ -43,6 +46,7 @@ function mediaOf(item: OutItem): unknown {
   switch (item.type) {
     case "image":
     case "video":
+    case "audio":
       return { url: item.url };
     case "buttons":
       return { buttons: item.buttons };
@@ -82,36 +86,41 @@ export async function deliver(contact: Contact, item: OutItem, sender: Sender = 
   })!;
   publish({ type: "message", contactId: contact.id, messageId: row.id });
 
-  if (contact.channel === "simulador" || !isWhatsAppConfigured()) {
+  const creds = contact.channel === "simulador" ? null : stores.creds(contact.store_id);
+  if (!creds) {
     messages.setWaId(row.id, `sim-${row.id}`, contact.channel === "simulador" ? "simulado" : "sem_whatsapp");
   } else {
     try {
       const to = contact.wa_id;
+      const c = creds;
       let id = "";
       switch (item.type) {
         case "text":
-          id = await wa.text(to, item.body);
+          id = await wa.text(c, to, item.body);
           break;
         case "image":
-          id = await wa.image(to, absoluteUrl(item.url), item.caption);
+          id = await wa.image(c, to, absoluteUrl(item.url), item.caption);
           break;
         case "video":
-          id = await wa.video(to, absoluteUrl(item.url), item.caption);
+          id = await wa.video(c, to, absoluteUrl(item.url), item.caption);
+          break;
+        case "audio":
+          id = await wa.audio(c, to, absoluteUrl(item.url));
           break;
         case "buttons":
-          id = await wa.buttons(to, item.body, item.buttons, item.footer);
+          id = await wa.buttons(c, to, item.body, item.buttons, item.footer);
           break;
         case "list":
-          id = await wa.list(to, item.body, item.buttonText, item.rows);
+          id = await wa.list(c, to, item.body, item.buttonText, item.rows);
           break;
         case "location":
-          id = await wa.location(to, item.lat, item.lng, item.name, item.address);
+          id = await wa.location(c, to, item.lat, item.lng, item.name, item.address);
           break;
         case "contact":
-          id = await wa.contact(to, item.nome, item.telefone, item.empresa);
+          id = await wa.contact(c, to, item.nome, item.telefone, item.empresa);
           break;
         case "template":
-          id = await wa.template(to, item.name, item.language, item.params ?? []);
+          id = await wa.template(c, to, item.name, item.language, item.params ?? []);
           break;
       }
       messages.setWaId(row.id, id || `out-${row.id}`, "sent");

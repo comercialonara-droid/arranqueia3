@@ -9,6 +9,7 @@ import { validSignature, parseMessage } from "../src/whatsapp/webhook.ts";
 import { sanitizeSchema, toolDefinitions } from "../src/agent/tools.ts";
 import { splitIntoBubbles } from "../src/pipeline/outbox.ts";
 import { scoreLead } from "../src/services/scoring.ts";
+import { encrypt, decrypt, isValidCpf, parseBirthDate, hashPassword, verifyPassword, maskCpf } from "../src/util/crypto.ts";
 import { fromZoned, zonedParts } from "../src/util/time.ts";
 
 test("parcela pela tabela Price", () => {
@@ -78,10 +79,13 @@ test("mensagens do webhook viram o formato interno", () => {
 });
 
 test("schemas das ferramentas ficam compatíveis com o modo strict", () => {
-  const all = JSON.stringify(toolDefinitions());
+  const all = JSON.stringify(toolDefinitions(defaultSettings));
   assert.ok(!all.includes("minimum"));
   assert.ok(!all.includes('"type":["'));
-  for (const t of toolDefinitions()) {
+  const semValores = toolDefinitions(deepMerge(defaultSettings, { atendimento: { politica_preco: "so_vendedor" } })).map((t) => t.name);
+  assert.ok(!semValores.includes("simular_financiamento"), "sem valores: a IA não faz conta de parcela");
+  assert.ok(semValores.includes("enviar_simulacao_para_vendedor"));
+  for (const t of toolDefinitions(defaultSettings)) {
     assert.equal(t.strict, true);
     assert.equal((t.input_schema as any).additionalProperties, false);
   }
@@ -93,11 +97,31 @@ test("resposta longa vira até 4 balões", () => {
   assert.equal(splitIntoBubbles("1\n\n2\n\n3\n\n4\n\n5\n\n6").length, 4);
 });
 
-test("pontuação do lead", () => {
-  const base = { interesse: [] as string[], interesse_texto: null, forma_pagamento: null, entrada: null, orcamento_max: null, parcela_max: null, tem_troca: null, urgencia: null, bairro: null, cidade: null } as any;
+test("qualificação do lead em 4 dimensões", () => {
+  const base = { intencao: "indefinida", interesse: [] as string[], interesse_texto: null, forma_pagamento: null, entrada: null, tem_troca: null, troca: null, urgencia: null } as any;
   assert.equal(scoreLead(base, null).temperatura, "frio");
-  const hot = scoreLead({ ...base, interesse: ["x"], forma_pagamento: "financiamento", entrada: 20000, urgencia: "imediata" }, null, { visitaAgendada: true });
-  assert.equal(hot.temperatura, "quente");
+  const curioso = scoreLead({ ...base, intencao: "fotos_videos", interesse: ["x"] }, null);
+  assert.ok(["frio", "morno"].includes(curioso.temperatura));
+  const pronto = scoreLead({ ...base, intencao: "simulacao", interesse: ["x"], forma_pagamento: "troca_mais_financiamento", entrada: 20000, tem_troca: true, troca: { modelo: "Onix", ano: 2018 }, urgencia: "imediata" }, null);
+  assert.equal(pronto.temperatura, "pronto");
+  assert.ok(pronto.detalhe.motivos.length > 3);
+  assert.equal(scoreLead({ ...base, intencao: "sem_interesse", urgencia: "imediata" }, null).temperatura, "frio");
+});
+
+test("CPF, data de nascimento, senha e criptografia", () => {
+  assert.equal(isValidCpf("529.982.247-25"), true);
+  assert.equal(isValidCpf("111.111.111-11"), false);
+  assert.equal(isValidCpf("529.982.247-24"), false);
+  assert.equal(parseBirthDate("15/03/1990"), "1990-03-15");
+  assert.equal(parseBirthDate("31/02/1990"), null);
+  assert.equal(parseBirthDate("01/01/2015"), null, "menor de idade não passa");
+  const enc = encrypt("52998224725");
+  assert.ok(!enc.includes("52998224725"));
+  assert.equal(decrypt(enc), "52998224725");
+  assert.equal(maskCpf("52998224725"), "***.982.***-25");
+  const h = hashPassword("segredo123");
+  assert.ok(verifyPassword("segredo123", h));
+  assert.ok(!verifyPassword("errada", h));
 });
 
 test("fuso horário da loja (São Paulo)", () => {

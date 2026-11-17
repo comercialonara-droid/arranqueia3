@@ -1,0 +1,247 @@
+{
+  "loja": {
+    "slug": "voltta-ebikes",
+    "nome": "VOLTTA E-Bikes"
+  },
+  "config": {
+    "loja": {
+      "segmento": "bikes_eletricas",
+      "tipo_loja": "loja de bicicletas elétricas",
+      "nome": "VOLTTA E-Bikes",
+      "cidade": "Rio de Janeiro - RJ",
+      "endereco": "",
+      "referencia": "lojas em Copacabana e na Barra da Tijuca",
+      "instagram": "@volttabikerj",
+      "telefone": "5521966418692",
+      "site": "",
+      "maps_url": "",
+      "lat": null,
+      "lng": null
+    },
+    "atendimento": {
+      "nome_assistente": "Bia",
+      "tom": "Simpática, animada e direta, como uma vendedora carioca de bike elétrica. Frases curtas, no máximo um emoji por mensagem.",
+      "politica_preco": "informar",
+      "aceita_troca": false,
+      "aceita_financiamento": true,
+      "compra_carro_sem_troca": false,
+      "garantia": "Garantia de fábrica no motor e na bateria; detalhes com o consultor.",
+      "documentacao": "Nota fiscal e manual entregues na compra.",
+      "diferenciais": [
+        "Pronta entrega",
+        "Atendimento especializado",
+        "Lojas em Copacabana e na Barra da Tijuca"
+      ],
+      "regras_extras": "Endereço exato das lojas: ainda não cadastrado. Se pedirem, diga que o consultor manda a localização da loja mais perto."
+    },
+    "simulacao": {
+      "ativa": true,
+      "pedir_cpf": false,
+      "pedir_nascimento": false,
+      "pedir_cnh": false,
+      "texto_privacidade": "Seus dados são usados só para o atendimento da loja."
+    },
+    "financiamento": {
+      "modo": "tabela_price",
+      "taxa_mensal_pct": 2.49,
+      "prazos": [
+        10,
+        12,
+        18,
+        21
+      ],
+      "entrada_minima_pct": 0,
+      "observacao": "Parcelamento no cartão; valores aproximados."
+    },
+    "agenda": {
+      "duracao_min": 30
+    }
+  },
+  "veiculos": [
+    {
+      "id": "voltta-v9-max",
+      "marca": "VOLTTA",
+      "modelo": "V9 Max",
+      "ano_modelo": 2026,
+      "preco": 8599,
+      "preco_promocional": 7999,
+      "carroceria": "urbana",
+      "ficha": {
+        "motor_w": "1000",
+        "bateria": "48V 15,6Ah removível",
+        "autonomia_km": "50",
+        "velocidade_max_kmh": "48",
+        "carga_max_kg": "150",
+        "aro": "20, pneus slick Innova",
+        "suspensao": "dupla traseira",
+        "marchas": "Shimano 7 marchas"
+      },
+      "destaques": [
+        "Cadeado integrado na roda",
+        "Painel com NFC",
+        "Alarme",
+        "Farol duplo LED"
+      ],
+      "opcionais": [],
+      "descricao": "Bike elétrica urbana de 1000W com bateria removível, cadeado integrado na roda e alarme.",
+      "destaque": true
+    },
+    {
+      "id": "ouxi-v8-pro",
+      "marca": "OUXI",
+      "modelo": "V8 Pro",
+      "ano_modelo": 2026,
+      "preco": 8599,
+      "carroceria": "urbana",
+      "ficha": {
+        "motor_w": "1000",
+        "autonomia_km": "60",
+        "suspensao": "dupla",
+        "aro": "pneus Kenda"
+      },
+      "destaques": [
+        "Duplo farol LED",
+        "Setas dianteiras e traseiras",
+        "Painel colorido com PAS",
+        "Bagageiro dianteiro"
+      ],
+      "opcionais": [],
+      "destaque": false
+    },
+    {
+      "id": "ouxi-v8-pro-max",
+      "marca": "OUXI",
+      "modelo": "V8 Pro Max",
+      "ano_modelo": 2026,
+      "preco": 11000,
+      "preco_promocional": 10599,
+      "carroceria": "urbana",
+      "ficha": {
+        "motor_w": "1000",
+        "bateria": "duas baterias",
+        "autonomia_km": "120",
+        "marchas": "Shimano"
+      },
+      "destaques": [
+        "Duas baterias",
+        "Até 120 km",
+        "Duplo farol LED",
+        "Setas"
+      ],
+      "opcionais": [],
+      "descricao": "Versão com duas baterias para quem roda o dia todo.",
+      "destaque": true
+    },
+    {
+      "id": "ouxi-vifa-q8",
+      "marca": "OUXI",
+      "modelo": "Vifa Q8",
+      "ano_modelo": 2026,
+      "preco": 9500,
+      "preco_promocional": 8999,
+      "carroceria": "urbana",
+      "cor": "cinza com azul-turquesa",
+      "ficha": {
+        "autonomia_km": "60",
+        "suspensao": "dupla",
+        "aro": "pneus slick"
+      },
+      "destaques": [
+        "NFC",
+        "Bluetooth com caixa de som",
+        "Painel LED",
+        "Duplo farol"
+      ],
+      "opcionais": [],
+      "destaque": false
+    },
+    {
+      "id": "inow-v40-pro",
+      "marca": "INOW",
+      "modelo": "V40 Pro",
+      "ano_modelo": 2026,
+      "preco": 8999,
+      "carroceria": "urbana",
+      "ficha": {
+        "motor_w": "1000",
+        "bateria": "18Ah",
+        "autonomia_km": "60",
+        "carga_max_kg": "200",
+        "aro": "20, pneus Kenda",
+        "suspensao": "dupla",
+        "freios": "hidráulicos"
+      },
+      "destaques": [
+        "Banco alongado",
+        "Cadeado integrado",
+        "Painel LCD com Bluetooth e App Inow",
+        "Farol LED com setas"
+      ],
+      "opcionais": [],
+      "descricao": "A máxima da INOW: banco alongado que leva até 200 kg.",
+      "destaque": false
+    },
+    {
+      "id": "inow-v35",
+      "marca": "INOW",
+      "modelo": "V35",
+      "ano_modelo": 2026,
+      "preco": 10200,
+      "carroceria": "urbana",
+      "ficha": {
+        "bateria": "duas baterias",
+        "autonomia_km": "120"
+      },
+      "destaques": [
+        "Duas baterias",
+        "Painel LCD multifuncional",
+        "Suporte para acessórios"
+      ],
+      "opcionais": [],
+      "destaque": false
+    },
+    {
+      "id": "inow-v9-max-s",
+      "marca": "INOW",
+      "modelo": "V9 Max S",
+      "ano_modelo": 2026,
+      "carroceria": "urbana",
+      "ficha": {
+        "bateria": "2 baterias de 20Ah",
+        "autonomia_km": "150",
+        "carga_max_kg": "200",
+        "suspensao": "dupla (nova)"
+      },
+      "destaques": [
+        "Até 150 km",
+        "Painel HC6 com NFC",
+        "Farol com caixa de som Bluetooth",
+        "Cadeado integrado na roda",
+        "Pronta entrega"
+      ],
+      "opcionais": [],
+      "destaque": false
+    },
+    {
+      "id": "inow-v29-pro",
+      "marca": "INOW",
+      "modelo": "V29 Pro",
+      "ano_modelo": 2026,
+      "carroceria": "urbana",
+      "ficha": {
+        "bateria": "duas baterias",
+        "autonomia_km": "120"
+      },
+      "destaques": [
+        "Baú adaptável 35L",
+        "Painel multifuncional com NFC",
+        "Farol LED com setas",
+        "Tranca integrada",
+        "Dois bancos"
+      ],
+      "opcionais": [],
+      "destaque": false
+    }
+  ],
+  "equipe": []
+}

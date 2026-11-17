@@ -4,6 +4,8 @@ import type { StoreSettings } from "../types.js";
 export const defaultSettings: StoreSettings = {
   loja: {
     nome: "Sua Loja de Veículos",
+    segmento: "veiculos",
+    tipo_loja: "loja de seminovos",
     cidade: "Rio de Janeiro - RJ",
     endereco: "",
     referencia: "",
@@ -28,13 +30,22 @@ export const defaultSettings: StoreSettings = {
     nome_assistente: "Bia",
     tom: "Simpática, direta e segura, como uma vendedora experiente carioca. Frases curtas, sem textão, no máximo um emoji por mensagem.",
     politica_preco: "parcela_primeiro",
+    citar_nome_vendedor: false,
     aceita_troca: true,
     aceita_financiamento: true,
+    compra_carro_sem_troca: false,
     garantia: "Garantia de motor e câmbio conforme a lei e laudo cautelar aprovado.",
     documentacao: "Transferência feita pela loja.",
     diferenciais: ["Carros revisados", "Aceitamos seu usado na troca", "Financiamento com as principais financeiras"],
     regras_extras: "",
     responder_fora_do_horario: true,
+  },
+  simulacao: {
+    ativa: true,
+    pedir_cpf: true,
+    pedir_nascimento: true,
+    pedir_cnh: true,
+    texto_privacidade: "Seus dados são usados só para a análise de crédito da loja e não são compartilhados para outros fins.",
   },
   financiamento: {
     modo: "tabela_price",
@@ -55,7 +66,6 @@ export const defaultSettings: StoreSettings = {
     notificar_vendedor: true,
     template_notificacao: null,
     pausar_ia_horas: 12,
-    score_para_handoff: 70,
   },
   conversoes: {
     ativo: true,
@@ -80,24 +90,25 @@ export function deepMerge<T>(base: T, patch: unknown): T {
   return out as T;
 }
 
-let cache: StoreSettings | null = null;
+const cache = new Map<number, StoreSettings>();
 
-export function getSettings(): StoreSettings {
-  if (cache) return cache;
-  const row = db.prepare("SELECT value FROM settings WHERE key = 'store'").get() as { value: string } | undefined;
-  cache = deepMerge(defaultSettings, parseJson(row?.value, {}));
-  return cache;
+export function getSettings(storeId: number): StoreSettings {
+  const hit = cache.get(storeId);
+  if (hit) return hit;
+  const row = db.prepare("SELECT settings FROM stores WHERE id = ?").get(storeId) as { settings: string } | undefined;
+  const merged = deepMerge(defaultSettings, parseJson(row?.settings, {}));
+  cache.set(storeId, merged);
+  return merged;
 }
 
-export function saveSettings(patch: unknown): StoreSettings {
-  const merged = deepMerge(getSettings(), patch);
-  db.prepare("INSERT INTO settings(key, value) VALUES('store', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(
-    JSON.stringify(merged),
-  );
-  cache = merged;
+export function saveSettings(storeId: number, patch: unknown): StoreSettings {
+  const merged = deepMerge(getSettings(storeId), patch);
+  db.prepare("UPDATE stores SET settings = ? WHERE id = ?").run(JSON.stringify(merged), storeId);
+  if (merged.loja?.nome) db.prepare("UPDATE stores SET nome = ? WHERE id = ?").run(merged.loja.nome, storeId);
+  cache.set(storeId, merged);
   return merged;
 }
 
 export function resetSettingsCache() {
-  cache = null;
+  cache.clear();
 }

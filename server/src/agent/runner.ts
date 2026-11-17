@@ -10,7 +10,7 @@ import { runTool, toolDefinitions, type ToolContext } from "./tools.js";
 import { mockRespond } from "./mock.js";
 
 let client: Anthropic | null = null;
-const anthropic = () => (client ??= new Anthropic({ maxRetries: 3, timeout: 120_000 }));
+export const anthropic = () => (client ??= new Anthropic({ maxRetries: 3, timeout: 120_000 }));
 
 type Param = Anthropic.Beta.BetaMessageParam;
 type UserBlock = Anthropic.Beta.BetaContentBlockParam;
@@ -23,8 +23,8 @@ const NO_REPLY = "[SEM_RESPOSTA]";
 
 export class ModelUnavailableError extends Error {}
 
-async function callModel(system: string, messages: Turn[]): Promise<Anthropic.Beta.BetaMessage> {
-  if (config.ai.provider === "mock") return mockRespond(messages as any);
+async function callModel(system: string, tools: Anthropic.Beta.BetaTool[], messages: Turn[]): Promise<Anthropic.Beta.BetaMessage> {
+  if (config.ai.provider === "mock") return mockRespond(messages as any, system);
 
   const betas: Anthropic.Beta.AnthropicBeta[] = [];
   if (config.ai.serverFallback) betas.push("server-side-fallback-2026-07-01");
@@ -37,7 +37,7 @@ async function callModel(system: string, messages: Turn[]): Promise<Anthropic.Be
       thinking: { type: "adaptive" },
       output_config: { effort: config.ai.effort },
       system: [{ type: "text", text: system, cache_control: { type: "ephemeral", ttl: "1h" } }],
-      tools: toolDefinitions(),
+      tools,
       tool_choice: { type: "auto" },
       // cache automático do histórico da conversa (prefixo só cresce, então reaproveita)
       cache_control: { type: "ephemeral" },
@@ -75,15 +75,17 @@ export async function runAgentTurn(
   userBlocks: UserBlock[],
   opts: { extraContext?: string[]; onCommit?: () => void } = {},
 ): Promise<TurnResult> {
-  const settings = getSettings();
   let contact = contacts.get(contactId) as Contact;
+  const storeId = contact.store_id;
+  const settings = getSettings(storeId);
   const lead = leads.get(contactId)!;
   const session = aiTurns.currentSession(contactId);
   const history = aiTurns.history(session.id) as Turn[];
-  const system = buildSystemPrompt(settings);
+  const system = buildSystemPrompt(storeId, settings);
+  const tools = toolDefinitions(settings);
   const context = buildTurnContext(settings, contact, lead, { isNewSession: session.isNew || history.length === 0, extra: opts.extraContext });
 
-  const ctx: ToolContext = { contact, settings, signals: {}, sent: 0, handedOff: false };
+  const ctx: ToolContext = { contact, storeId, settings, signals: {}, sent: 0, handedOff: false };
   const pendingUser: Turn[] = [
     { role: "user", content: userBlocks },
     { role: "system", content: context },
@@ -109,7 +111,7 @@ export async function runAgentTurn(
 
   while (rounds < config.ai.maxToolRounds) {
     rounds++;
-    const resp = await callModel(system, working);
+    const resp = await callModel(system, tools, working);
     lastModel = resp.model;
     aiTurns.addUsage(session.id, {
       input: resp.usage?.input_tokens ?? 0,
@@ -123,7 +125,7 @@ export async function runAgentTurn(
     if (resp.stop_reason === "refusal") {
       // não guarda a resposta recusada; guarda só o que o cliente disse
       commitUserOnly();
-      events.add(contactId, "ia_recusou", { categoria: (resp as any).stop_details?.category ?? null });
+      events.add(storeId, contactId, "ia_recusou", { categoria: (resp as any).stop_details?.category ?? null });
       log.warn("modelo recusou o turno", { contactId, details: (resp as any).stop_details });
       const { handoff } = await import("../services/handoff.js");
       await deliverSequence(contact, [{ type: "text", body: "Vou pedir para um dos nossos consultores te responder sobre isso, tá bom? Só um instante 🙂" }]);

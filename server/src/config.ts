@@ -33,8 +33,12 @@ export const config = {
   timezone: env("TZ_LOJA", "America/Sao_Paulo"),
 
   admin: {
+    /** Login do administrador geral (criado na primeira inicialização) */
+    email: env("ADMIN_EMAIL", "admin").toLowerCase(),
     password: env("ADMIN_PASSWORD", "trocar-esta-senha"),
     sessionSecret: env("SESSION_SECRET", "defina-um-segredo-longo-e-aleatorio"),
+    /** Chave para criptografar CPF e dados pessoais. Se vazia, deriva do SESSION_SECRET. */
+    dataKey: env("DATA_KEY"),
   },
 
   ai: {

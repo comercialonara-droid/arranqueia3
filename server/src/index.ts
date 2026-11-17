@@ -4,14 +4,15 @@ import { fileURLToPath } from "node:url";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import multipart from "@fastify/multipart";
-import { config, isWhatsAppConfigured } from "./config.js";
+import { config } from "./config.js";
 import { log } from "./util/log.js";
 import { registerWebhook } from "./whatsapp/webhook.js";
 import { registerAdmin } from "./api/admin.js";
-import { requireAuth } from "./api/auth.js";
+import { registerMedia } from "./api/media.js";
 import { startScheduler } from "./services/followups.js";
 import { db } from "./db/index.js";
 import { seedIfEmpty } from "./scripts/seed.js";
+import { ensureAdmin } from "./db/repos.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 // funciona tanto rodando de server/src (tsx) quanto de dist/ (build)
@@ -37,16 +38,11 @@ export async function buildApp() {
   await app.register(fastifyStatic, { root: path.join(config.dataDir, "uploads"), prefix: "/uploads/", decorateReply: true, maxAge: "7d" });
 
   // mídias recebidas dos clientes: só com login
-  app.get("/media/:file", { preHandler: requireAuth }, async (req, reply) => {
-    const file = path.basename((req.params as any).file);
-    const full = path.join(config.dataDir, "media", file);
-    if (!fs.existsSync(full)) return reply.code(404).send();
-    return reply.sendFile(file, path.join(config.dataDir, "media"));
-  });
+  registerMedia(app);
 
   app.get("/health", async () => {
     db.prepare("SELECT 1").get();
-    return { ok: true, whatsapp: isWhatsAppConfigured(), ia: config.ai.provider };
+    return { ok: true, versao: 2, ia: config.ai.provider };
   });
 
   registerWebhook(app);
@@ -75,8 +71,10 @@ export async function buildApp() {
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
+  const admin = ensureAdmin();
+  if (admin) log.info("administrador criado", { login: admin.email });
   const seeded = seedIfEmpty();
-  if (seeded) log.info("estoque inicial carregado", seeded);
+  if (seeded) log.info("loja inicial carregada", seeded);
   const app = await buildApp();
   await app.listen({ port: config.port, host: "0.0.0.0" });
   startScheduler();
@@ -85,7 +83,7 @@ if (isMain) {
     painel: `${config.publicUrl}/painel/`,
     webhook: `${config.publicUrl}/webhook`,
     ia: `${config.ai.provider} (${config.ai.model}, esforço ${config.ai.effort})`,
-    whatsapp: isWhatsAppConfigured() ? "configurado" : "não configurado (só simulador)",
+
   });
   const stop = async () => {
     await app.close();

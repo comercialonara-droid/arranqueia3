@@ -1,17 +1,17 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { norm } from "../services/inventory.js";
+import { PROFILES, vocab } from "../segments.js";
 
 /**
- * Modelo simulado para testar o fluxo inteiro (webhook → fila → ferramentas → envio → painel) sem chave de API.
- * Ele segue regras simples por palavra-chave e chama as mesmas ferramentas que o Claude chamaria.
- * Não use em produção: as respostas são fixas e sem inteligência.
+ * MODO DE TESTE — não é a IA de verdade.
+ * Segue regras simples por palavra-chave e chama as mesmas ferramentas que o Claude chamaria,
+ * só para testar o fluxo (webhook → fila → ferramentas → envio → painel) sem chave de API.
  */
 type Block = Anthropic.Beta.BetaContentBlock;
 type Param = Anthropic.Beta.BetaMessageParam | { role: "system"; content: string };
 
 let seq = 0;
 const id = () => `toolu_mock_${Date.now()}_${seq++}`;
-
 function msg(content: Block[], stop: Anthropic.Beta.BetaMessage["stop_reason"]): Anthropic.Beta.BetaMessage {
   return {
     id: `msg_mock_${seq++}`,
@@ -26,98 +26,110 @@ function msg(content: Block[], stop: Anthropic.Beta.BetaMessage["stop_reason"]):
 }
 const text = (t: string) => ({ type: "text", text: t, citations: null }) as unknown as Block;
 const tool = (name: string, input: Record<string, unknown>) => ({ type: "tool_use", id: id(), name, input }) as unknown as Block;
+const say = (t: string) => msg([text(t)], "end_turn");
+const call = (name: string, input: Record<string, unknown>, before?: string) => msg([...(before ? [text(before)] : []), tool(name, input)], "tool_use");
 
 function blocksText(content: unknown): string {
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return "";
-  return content
-    .map((b: any) => (b.type === "text" ? b.text : ""))
-    .filter(Boolean)
-    .join("\n");
+  return content.map((b: any) => (b.type === "text" ? b.text : "")).filter(Boolean).join("\n");
 }
 
-export function mockRespond(messages: Param[]): Anthropic.Beta.BetaMessage {
+const ASK: Record<string, string> = {
+  "nome completo": "Pra eu já deixar sua simulação encaminhada, me passa seu nome completo?",
+  CPF: "Agora seu CPF, por favor. Ele é usado só pra análise de crédito da loja, tá?",
+  "data de nascimento": "E sua data de nascimento?",
+  "se tem CNH": "Você tem CNH?",
+  "forma de pagamento": "Você pensa em financiar, dar algum carro na troca ou pagar à vista?",
+  "valor de entrada (ou se vai dar carro na troca)": "Quanto você teria de entrada? Ou pensa em dar um carro na troca?",
+  "qual carro": "Qual carro te interessou aqui na loja?",
+};
+
+/** No modo de teste, a loja de bikes recebe as mesmas respostas com o vocabulário dela. */
+export function mockRespond(messages: Param[], system = ""): Anthropic.Beta.BetaMessage {
+  const r = mockRespondCars(messages);
+  if (!/bicicletas el[eé]tricas/i.test(system.slice(0, 400))) return r;
+  const p = PROFILES.bikes_eletricas;
+  for (const b of r.content as any[]) if (b.type === "text") b.text = vocab(b.text, p).replace("🚗", "⚡");
+  return r;
+}
+
+function mockRespondCars(messages: Param[]): Anthropic.Beta.BetaMessage {
   const real = messages.filter((m) => m.role !== "system") as Anthropic.Beta.BetaMessageParam[];
   const last = real[real.length - 1];
   const lastBlocks = Array.isArray(last?.content) ? (last.content as any[]) : [];
-
-  // Depois de uma ferramenta: escreve a resposta com base no resultado
   const results = lastBlocks.filter((b) => b.type === "tool_result");
+
   if (results.length) {
-    const prevAssistant = [...real].reverse().find((m) => m.role === "assistant");
-    const calls = (prevAssistant?.content as any[]).filter((b) => b.type === "tool_use");
-    const call = calls[calls.length - 1];
-    const data = (() => {
-      try {
-        return JSON.parse(results[results.length - 1].content);
-      } catch {
-        return {};
-      }
-    })();
-    switch (call?.name) {
+    const prev = [...real].reverse().find((m) => m.role === "assistant");
+    const calls = ((prev?.content as any[]) ?? []).filter((b) => b.type === "tool_use");
+    const callName = calls[calls.length - 1]?.name;
+    let data: any = {};
+    try {
+      data = JSON.parse(results[results.length - 1].content);
+    } catch {}
+    switch (callName) {
       case "buscar_estoque": {
         const v = data.veiculos?.[0] ?? data.alternativas?.[0];
-        if (!v) return msg([text("Poxa, não achei nada assim no estoque agora. Me conta um pouco mais do que você procura?")], "end_turn");
-        return msg(
-          [
-            text(
-              `Tenho sim! *${v.titulo}*\n• ${v.km} · ${v.cambio ?? ""} · ${v.combustivel ?? ""}\n• ${v.preco}${v.parcela_estimada ? `\n• ${v.parcela_estimada}*` : ""}`,
-            ),
-            tool("enviar_fotos", { veiculo_id: v.id, quantidade: 3 }),
-          ],
-          "tool_use",
-        );
+        if (!v) return say("Poxa, esse eu não tenho agora 😕 Me conta o que você procura que eu vejo os parecidos.");
+        return call("enviar_fotos", { veiculo_id: v.id, quantidade: 3 }, `Tenho sim! O ${v.como_chamar} tá aqui na loja 😊`);
       }
       case "enviar_fotos":
-        return msg([text("Gostou? Quer vir ver ele pessoalmente? Tenho horário amanhã 🙂")], "end_turn");
-      case "simular_financiamento":
-        return msg([text(`Simulei aqui: entrada de ${data.entrada} + ${data.opcoes?.slice(-1)[0] ?? ""}.\n\n${data.observacao ?? ""}\n\nQuer agendar uma visita?`)], "end_turn");
+        return say("Esse tá muito inteiro! Quer que eu já veja uma simulação pra você? É rapidinho e sem compromisso.");
+      case "atualizar_ficha":
+      case "registrar_troca":
+        return say(ASK["nome completo"]);
+      case "registrar_dados_simulacao": {
+        if (data.problemas?.length) return say("Acho que algum número veio trocado 😅 Confere pra mim, por favor?");
+        if (data.pronto_para_enviar) return call("enviar_simulacao_para_vendedor", { resumo: "Cliente completou os dados da simulação (modo de teste)." }, "Perfeito! Vou passar tudo pro nosso consultor rodar sua simulação.");
+        return say(ASK[data.falta?.[0]] ?? "Me conta mais um pouquinho?");
+      }
+      case "enviar_simulacao_para_vendedor":
+        return say("Ele te chama aqui mesmo rapidinho 😉");
       case "horarios_disponiveis": {
         const h = data.horarios ?? [];
-        if (!h.length) return msg([text("Essa semana está cheia. Pode ser na próxima?")], "end_turn");
-        return msg([tool("enviar_botoes", { texto: "Qual horário fica melhor pra você?", opcoes: h.slice(0, 3).map((x: any, i: number) => ({ id: `slot_${x.data}_${x.hora}`, titulo: x.rotulo_botao })) })], "tool_use");
+        if (!h.length) return say("Essa semana tá cheia. Pode ser na próxima?");
+        return call("enviar_botoes", { texto: "Qual horário fica melhor pra você?", opcoes: h.slice(0, 3).map((x: any) => ({ id: `slot_${x.data}_${x.hora}`, titulo: x.rotulo_botao })) });
       }
       case "enviar_botoes":
-        return msg([text("[SEM_RESPOSTA]")], "end_turn");
+        return say("[SEM_RESPOSTA]");
       case "agendar_visita":
-        if (!data.agendado) return msg([text(`Esse horário não dá: ${data.motivo}`)], "end_turn");
-        return msg([text(`Fechado! Te espero ${data.quando} 🚗`), tool("enviar_localizacao_loja", {})], "tool_use");
+        if (!data.agendado) return say(`Esse horário não dá: ${data.motivo}`);
+        return call("enviar_localizacao_loja", {}, `Fechado! Te espero ${data.quando} 🚗`);
       case "enviar_localizacao_loja":
-        return msg([text("Qualquer coisa é só chamar aqui.")], "end_turn");
+        return say("Qualquer coisa é só me chamar.");
       case "transferir_para_vendedor":
-        return msg([text("Prontinho, já chamei um consultor. Ele continua com você aqui mesmo.")], "end_turn");
+        return say("[SEM_RESPOSTA]");
       default:
-        return msg([text("Certo! Posso te ajudar com mais alguma coisa?")], "end_turn");
+        return say("Certo! Qualquer coisa é só falar.");
     }
   }
 
-  const said = norm(blocksText(last?.content));
+  const raw = blocksText(last?.content);
+  const said = norm(raw);
+  const prevAssistant = [...real].reverse().find((m) => m.role === "assistant");
+  const prevText = norm(blocksText(prevAssistant?.content));
+
   const slot = said.match(/slot (\d{4} \d{2} \d{2}) (\d{2}) (\d{2})/);
   if (slot) {
     const [y, m, d] = slot[1].split(" ");
-    return msg([tool("agendar_visita", { data: `${y}-${m}-${d}`, hora: `${slot[2]}:${slot[3]}`, tipo: "visita" })], "tool_use");
+    return call("agendar_visita", { data: `${y}-${m}-${d}`, hora: `${slot[2]}:${slot[3]}`, tipo: "visita" });
   }
-  if (/vendedor|humano|atendente|pessoa|desconto/.test(said)) {
-    return msg([text("Claro! Vou chamar um dos nossos consultores."), tool("transferir_para_vendedor", { motivo: "pediu_humano", resumo: "Cliente pediu atendimento humano (modo simulado).", urgente: false })], "tool_use");
+  const cpf = raw.match(/\d{3}\.?\d{3}\.?\d{3}-?\d{2}/);
+  const nasc = raw.match(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/);
+  if (cpf || nasc) return call("registrar_dados_simulacao", { cpf: cpf?.[0] ?? null, data_nascimento: nasc?.[0] ?? null, consentimento: true });
+  if (prevText.includes("cnh") && /\b(sim|tenho|nao|n)\b/.test(said)) return call("registrar_dados_simulacao", { tem_cnh: !/\b(nao|n)\b/.test(said) });
+  if (prevText.includes("nome completo") && raw.trim().split(/\s+/).length >= 2) return call("registrar_dados_simulacao", { nome_completo: raw.trim() });
+  if (/vendedor|humano|atendente|pessoa|desconto/.test(said))
+    return call("transferir_para_vendedor", { motivo: "pediu_humano", resumo: "Cliente pediu atendimento humano (modo de teste).", urgente: false }, "Claro! Vou chamar um dos nossos consultores, ele continua com você aqui mesmo.");
+  if (/visita|agendar|amanha|horario|passar ai|test ride|test drive/.test(said)) return call("horarios_disponiveis", {});
+  if (/\bquanto (ta|custa|fica|sai|e)\b|preco|valor/.test(said)) return say("O valor certinho e a melhor condição o consultor passa na simulação, que é rapidinha. Quer que eu já encaminhe a sua?");
+  if (/troca/.test(said)) return call("registrar_troca", { modelo: null, fotos_recebidas: false }, "Aceitamos sim seu carro na troca!");
+  if (/simula|financ|parcela|entrada|^sim|quero|bora/.test(said)) {
+    const entrada = said.match(/(\d+)\s*mil/);
+    return call("atualizar_ficha", { intencao: "simulacao", forma_pagamento: /vista/.test(said) ? "a_vista" : "financiamento", entrada: entrada ? Number(entrada[1]) * 1000 : null });
   }
-  if (/parcela|financ|entrada/.test(said)) {
-    const prevCar = findLastVehicleId(real);
-    return msg([tool("simular_financiamento", { veiculo_id: prevCar, valor: prevCar ? null : 80000, entrada: null, prazo: null })], "tool_use");
-  }
-  if (/visita|agendar|amanha|horario|ir ai|passar ai/.test(said)) return msg([tool("horarios_disponiveis", {})], "tool_use");
-  if (/^(oi|ola|bom dia|boa tarde|boa noite|eai|e ai)\b/.test(said) && said.split(" ").length <= 4) {
-    return msg([text("Oi! Tudo bem? 😊 Aqui é a assistente da loja.\n\nQue carro você está procurando?")], "end_turn");
-  }
-  return msg([tool("buscar_estoque", { consulta: blocksText(last?.content).slice(0, 120), limite: 3 })], "tool_use");
-}
-
-function findLastVehicleId(messages: Anthropic.Beta.BetaMessageParam[]): string | null {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const c = messages[i].content;
-    if (!Array.isArray(c)) continue;
-    for (const b of c as any[]) {
-      if (b.type === "tool_use" && b.input?.veiculo_id) return b.input.veiculo_id;
-    }
-  }
-  return null;
+  if (/visita|agendar|amanha|horario|passar ai/.test(said)) return call("horarios_disponiveis", {});
+  if (/^(oi|ola|bom dia|boa tarde|boa noite|eai|e ai)\b/.test(said) && said.split(" ").length <= 4) return say("Oi! Tudo bem? 😊 Tá procurando algum carro em especial?");
+  return call("buscar_estoque", { consulta: raw.slice(0, 120), limite: 3 });
 }

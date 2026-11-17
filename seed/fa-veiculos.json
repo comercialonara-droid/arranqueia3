@@ -1,6 +1,12 @@
 {
+  "loja": {
+    "slug": "fa-veiculos",
+    "nome": "FA Veículos"
+  },
   "config": {
     "loja": {
+      "segmento": "veiculos",
+      "tipo_loja": "loja de seminovos",
       "nome": "FA Veículos",
       "cidade": "Rio de Janeiro - RJ",
       "endereco": "Rua Ruy Porto, 120 - Barra da Tijuca, Rio de Janeiro - RJ",
@@ -14,8 +20,8 @@
     },
     "atendimento": {
       "nome_assistente": "Bia",
-      "tom": "Simpática, direta e segura, como uma vendedora experiente carioca da Barra. Frases curtas, sem textão, no máximo um emoji por mensagem. Fale 'nossa loja', nunca o nome de um vendedor específico.",
-      "politica_preco": "parcela_primeiro",
+      "tom": "Simpática, leve e direta, como uma vendedora carioca da Barra conversando no próprio celular. Frases curtas, sem textão, sem formalidade, no máximo um emoji por mensagem. Fale 'nossa loja' e 'nosso consultor'.",
+      "politica_preco": "so_vendedor",
       "aceita_troca": true,
       "aceita_financiamento": true,
       "garantia": "Garantia de motor e câmbio conforme a lei. Detalhes de garantia estendida com o consultor.",
@@ -26,19 +32,36 @@
         "Financiamento com as principais financeiras",
         "Muitos carros com IPVA 2027 pago"
       ],
-      "regras_extras": "A loja não compra carro sem troca (não faz captação de usados avulsos): se a pessoa só quiser vender o carro dela, agradeça e explique que a loja só aceita o carro como parte do pagamento de outro.\nQuando falar de condição, destaque a parcela e a entrada, km baixo, câmbio automático, revisões e se está abaixo da FIPE.",
-      "responder_fora_do_horario": true
+      "regras_extras": "Quando falar do carro, valorize o que pesa na decisão: km, câmbio automático, revisões, GNV, IPVA pago e se está abaixo da FIPE.\nO objetivo principal é a simulação: a pessoa só vem à loja depois de saber que a simulação aprovou.",
+      "responder_fora_do_horario": true,
+      "citar_nome_vendedor": false,
+      "compra_carro_sem_troca": false
     },
     "financiamento": {
       "modo": "regra_loja",
       "taxa_mensal_pct": 1.99,
-      "prazos": [24, 36, 48, 60],
+      "prazos": [
+        24,
+        36,
+        48,
+        60
+      ],
       "entrada_minima_pct": 20,
-      "regra_loja": { "a_cada": 30000, "parcela": 1000, "prazo": 48 },
+      "regra_loja": {
+        "a_cada": 30000,
+        "parcela": 1000,
+        "prazo": 48
+      },
       "observacao": "Simulação aproximada, sujeita à análise de crédito."
+    },
+    "simulacao": {
+      "ativa": true,
+      "pedir_cpf": true,
+      "pedir_nascimento": true,
+      "pedir_cnh": true,
+      "texto_privacidade": "Seus dados são usados só para a análise de crédito da FA Veículos e não são compartilhados para outros fins."
     }
   },
-  "vendedores": [{ "nome": "Beto", "whatsapp": "", "ativo": false }],
   "veiculos": [
     {
       "id": "toyota-corolla-xei-2022",
@@ -54,8 +77,16 @@
       "combustivel": "flex + GNV",
       "carroceria": "sedan",
       "cor": "cinza",
-      "opcionais": ["Câmbio automático", "Motor 2.0", "GNV 5ª geração"],
-      "destaques": ["GNV 5ª geração", "IPVA 2027 pago", "Abaixo da FIPE"],
+      "opcionais": [
+        "Câmbio automático",
+        "Motor 2.0",
+        "GNV 5ª geração"
+      ],
+      "destaques": [
+        "GNV 5ª geração",
+        "IPVA 2027 pago",
+        "Abaixo da FIPE"
+      ],
       "descricao": "Corolla XEi 2.0 automático com GNV de 5ª geração: economia no dia a dia sem abrir mão do conforto.",
       "destaque": true
     },
@@ -71,8 +102,18 @@
       "combustivel": "gasolina",
       "carroceria": "suv",
       "cor": "prata",
-      "opcionais": ["Blindado (blindagem sem delaminação)", "Tração 4x4", "Motor V6 3.5", "Teto solar funcionando", "Manual e chave reserva"],
-      "destaques": ["Blindado", "Todas as revisões na Toyota", "Muito abaixo da FIPE"],
+      "opcionais": [
+        "Blindado (blindagem sem delaminação)",
+        "Tração 4x4",
+        "Motor V6 3.5",
+        "Teto solar funcionando",
+        "Manual e chave reserva"
+      ],
+      "destaques": [
+        "Blindado",
+        "Todas as revisões na Toyota",
+        "Muito abaixo da FIPE"
+      ],
       "descricao": "Lexus RX350 F-Sport blindado, 4x4, V6 3.5 automático, teto solar funcional, todas as revisões na Toyota.",
       "destaque": true
     },
@@ -88,8 +129,13 @@
       "combustivel": "flex",
       "carroceria": "sedan",
       "cor": "branco",
-      "opcionais": ["Câmbio automático"],
-      "destaques": ["Automático", "Toyota"]
+      "opcionais": [
+        "Câmbio automático"
+      ],
+      "destaques": [
+        "Automático",
+        "Toyota"
+      ]
     },
     {
       "id": "chevrolet-prisma-ltz-2019",
@@ -104,8 +150,17 @@
       "combustivel": "flex + GNV",
       "carroceria": "sedan",
       "cor": "vermelho",
-      "opcionais": ["Câmbio automático", "Bancos de couro", "Rodas de liga", "Manual e chave reserva"],
-      "destaques": ["Automático", "GNV", "Manual e chave reserva"]
+      "opcionais": [
+        "Câmbio automático",
+        "Bancos de couro",
+        "Rodas de liga",
+        "Manual e chave reserva"
+      ],
+      "destaques": [
+        "Automático",
+        "GNV",
+        "Manual e chave reserva"
+      ]
     },
     {
       "id": "chevrolet-tracker-premier-2022",
@@ -118,8 +173,16 @@
       "cambio": "automatico",
       "carroceria": "suv",
       "cor": "preta",
-      "opcionais": ["Teto solar panorâmico", "Bancos de couro", "Câmbio automático"],
-      "destaques": ["Teto panorâmico", "Com revisões", "79 mil km"]
+      "opcionais": [
+        "Teto solar panorâmico",
+        "Bancos de couro",
+        "Câmbio automático"
+      ],
+      "destaques": [
+        "Teto panorâmico",
+        "Com revisões",
+        "79 mil km"
+      ]
     },
     {
       "id": "chevrolet-tracker-midnight-2019",
@@ -134,8 +197,16 @@
       "combustivel": "flex",
       "carroceria": "suv",
       "cor": "preta",
-      "opcionais": ["Teto solar", "Bancos de couro", "Manual e chave reserva"],
-      "destaques": ["Turbo", "Teto solar", "Manual e chave reserva"]
+      "opcionais": [
+        "Teto solar",
+        "Bancos de couro",
+        "Manual e chave reserva"
+      ],
+      "destaques": [
+        "Turbo",
+        "Teto solar",
+        "Manual e chave reserva"
+      ]
     },
     {
       "id": "chevrolet-s10-lt-2014",
@@ -149,8 +220,18 @@
       "combustivel": "flex + GNV",
       "carroceria": "picape",
       "cor": "marrom",
-      "opcionais": ["Santo antônio", "Capota marítima", "Multimídia", "Mais de R$ 10 mil em acessórios", "Manual e chave reserva"],
-      "destaques": ["+R$ 10 mil em acessórios", "GNV", "Manual e chave reserva"]
+      "opcionais": [
+        "Santo antônio",
+        "Capota marítima",
+        "Multimídia",
+        "Mais de R$ 10 mil em acessórios",
+        "Manual e chave reserva"
+      ],
+      "destaques": [
+        "+R$ 10 mil em acessórios",
+        "GNV",
+        "Manual e chave reserva"
+      ]
     },
     {
       "id": "ford-ecosport-storm-2019",
@@ -161,7 +242,11 @@
       "ano_modelo": 2019,
       "carroceria": "suv",
       "entrada_sugerida": 20000,
-      "destaques": ["4x4", "IPVA 2027 pago", "Condição divulgada: R$ 20 mil de entrada + parcelas de R$ 1.680,20 (sujeito à análise)"]
+      "destaques": [
+        "4x4",
+        "IPVA 2027 pago",
+        "Condição divulgada: R$ 20 mil de entrada + parcelas de R$ 1.680,20 (sujeito à análise)"
+      ]
     },
     {
       "id": "honda-city-2014",
@@ -172,7 +257,27 @@
       "combustivel": "flex + GNV",
       "carroceria": "sedan",
       "entrada_sugerida": 15000,
-      "destaques": ["GNV", "IPVA 2027 pago", "Condição divulgada: R$ 15 mil de entrada + parcelas de R$ 1.333 (sujeito à análise)"]
+      "destaques": [
+        "GNV",
+        "IPVA 2027 pago",
+        "Condição divulgada: R$ 15 mil de entrada + parcelas de R$ 1.333 (sujeito à análise)"
+      ]
+    }
+  ],
+  "equipe": [
+    {
+      "nome": "Beto",
+      "email": "beto@faveiculos",
+      "role": "vendedor",
+      "whatsapp": "",
+      "recebe_leads": true
+    },
+    {
+      "nome": "Fabrício",
+      "email": "fabricio@faveiculos",
+      "role": "dono",
+      "whatsapp": "",
+      "recebe_leads": false
     }
   ]
 }

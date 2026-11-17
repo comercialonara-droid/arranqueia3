@@ -11,6 +11,8 @@ RUN npm run build
 # ── produção ──
 FROM node:22-bookworm-slim
 ENV NODE_ENV=production
+# ffmpeg converte os áudios do vendedor para o formato de mensagem de voz do WhatsApp
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev

@@ -1,41 +1,38 @@
-# Arranque
+# ArranqueIA
 
-IA de vendas no WhatsApp para lojas de veículos. Ela responde o cliente em segundos, 24 horas por dia, com dados reais do estoque: manda fotos, simula a parcela, pré-avalia o carro da troca, agenda a visita e passa o cliente para o vendedor na hora certa. Tudo aparece num painel onde a equipe acompanha e assume qualquer conversa.
+IA de vendas no WhatsApp para lojas de veículos: carros, motos e bicicletas elétricas. Ela responde o cliente em segundos, 24 horas por dia, com dados reais do estoque: manda fotos, simula a parcela, pré-avalia o carro da troca, agenda a visita e passa o cliente para o vendedor na hora certa. Tudo aparece num painel onde a equipe acompanha e assume qualquer conversa.
 
 Feito para converter lead de tráfego pago: quem chega por anúncio de clique para o WhatsApp é identificado, a IA começa pelo carro do anúncio, e os eventos de lead, visita e venda voltam para a Meta (Conversions API) para a campanha otimizar por quem compra, não só por quem manda "oi".
 
-O primeiro cliente configurado é a FA Veículos (`seed/fa-veiculos.json`), mas o sistema é de uso geral: cada loja tem sua própria instância, configuração e estoque.
+O primeiro cliente configurado é a FA Veículos (`seed/fa-veiculos.json`). Há também um exemplo de loja de bicicletas elétricas (`seed/voltta-ebikes.json`).
+
+Marca e manual de identidade: [docs/marca](docs/marca/README.md).
 
 ---
 
-## O que a IA faz
+## Novidades da versão 2.1
 
-| Etapa | Como |
-|---|---|
-| Responde rápido e como gente | Espera o cliente terminar de digitar (agrupa mensagens seguidas), mostra "digitando…", responde em balões curtos, uma pergunta por vez. |
-| Começa pelo anúncio | Lê o `referral` do clique no anúncio (título, texto, `ctwa_clid`) e já puxa o carro anunciado. |
-| Só fala do que existe | Toda informação de carro vem da ferramenta de estoque. Nada de preço ou opcional inventado. |
-| Mostra o carro | Envia as fotos reais do estoque direto no WhatsApp. |
-| Fala de parcela | Simula financiamento pela regra da loja (ex.: a cada R$ 30 mil financiados, R$ 1 mil de parcela) ou pela tabela Price, sempre com o aviso de análise de crédito. |
-| Qualifica sem interrogatório | Vai anotando nome, carro de interesse, forma de pagamento, entrada, troca, urgência e bairro na ficha do CRM. Calcula a temperatura do lead. |
-| Pré-avalia a troca | Pede modelo, ano, km, se é quitado e fotos. Vê as fotos que o cliente manda. Nunca dá valor de avaliação. |
-| Agenda a visita | Consulta horários livres (expediente, antecedência, lotação), oferece em botões do WhatsApp, confirma e manda a localização. |
-| Passa para o vendedor | Quando o cliente quer negociar, pede uma pessoa, reclama ou está pronto para fechar: pausa a IA naquele contato, escolhe o vendedor em rodízio e manda o resumo para ele no WhatsApp. |
-| Retoma quem sumiu | Mensagens curtas e diferentes depois de X horas sem resposta (dentro da janela de 24h), modelo aprovado depois disso. Lembrete automático antes da visita, com botões de confirmar ou remarcar. |
-| Entende áudio (opcional) | Transcreve o áudio do cliente. Sem transcrição configurada, pede com educação para escrever. |
-| Respeita limites | Para de mandar mensagens automáticas para quem pede. Não pede CPF ou renda. Admite que é assistente virtual se perguntarem. Negociação de valor é sempre com humano. |
-
-## O painel da loja
-
-- **Visão geral**: quem precisa de um vendedor agora, visitas de hoje e amanhã, funil da conversa até a venda, conversas e visitas por dia, anúncios que mais trazem cliente, carros mais procurados, custo estimado da IA.
-- **Conversas**: tudo em tempo real, no formato do WhatsApp. Botão para assumir a conversa (a IA pausa) e para devolver. Ficha completa do lead ao lado.
-- **Funil de leads**: quadro por etapa, arrastar para mudar. Registrar venda com valor manda o evento de compra para a Meta e tira o carro do estoque.
-- **Estoque**: cadastro com fotos, preço, FIPE, destaques; importação por planilha CSV.
-- **Agenda**: visitas e test-drives; marcar se o cliente compareceu.
-- **Testar a IA**: um celular simulado para conversar com a IA usando o estoque e as regras reais, sem mandar nada pelo WhatsApp. Ótimo para treinar e para mostrar ao cliente.
-- **Configurações**: dados da loja, tom de voz, política de preço, regras específicas, financiamento, horários, vendedores, retomadas, modelos aprovados e status das integrações.
+- **Cada cliente é separado de ponta a ponta.** Conversas, estoque, biblioteca de áudios, respostas prontas, notas, simulações, agenda, equipe, configurações, números de WhatsApp e arquivos (fotos, vídeos e áudios ficam em pastas `loja-N`) são só da loja. Dono e vendedor nunca enxergam outra loja, nem forçando o endereço. A mesma pessoa que fala com duas lojas vira duas conversas diferentes. Isso é verificado em testes automáticos (`server/test/isolation.test.ts`).
+- **Segmento por loja: veículos ou bicicletas elétricas.** Ao criar a loja (menu Lojas), o administrador escolhe o segmento. Em loja de bikes, a IA fala de bike, pergunta o uso e o trajeto, busca por autonomia, não fala de km, câmbio nem FIPE, e o cadastro do estoque ganha a ficha técnica (motor, bateria, autonomia, velocidade, recarga, carga máxima, aro, suspensão, freios, marchas, garantia). Os padrões de uma loja de bikes já vêm prontos: preço informado, parcelamento no cartão, sem troca e simulação sem CPF/CNH (tudo ajustável).
+- **Nova marca ArranqueIA** no painel (logo, ícone e favicon), seguindo o manual de identidade.
 
 ---
+
+## O que mudou na versão 2
+
+- **A IA é um filtro.** Ela entende o que a pessoa quer (só informação, fotos e vídeos, simulação, visita, negociar) e atende cada caso do jeito certo, sem empurrar.
+- **Simulação de crédito pelo WhatsApp.** Quando o cliente mostra interesse, ela oferece a simulação, coleta forma de pagamento, entrada ou troca, nome completo, CPF, data de nascimento e CNH, e manda a **ficha pronta para o vendedor**, que assume a conversa. O CPF é conferido (dígitos verificadores), guardado criptografado e aparece mascarado no painel.
+- **Preço só com o consultor** (configurável): a loja escolhe se a IA passa preço, destaca parcela ou não fala valores.
+- **Conversa humanizada.** Prompt reescrito com exemplos do tom certo e errado, mensagens curtas, uma pergunta por vez, sem legenda de ficha técnica nas fotos.
+- **Áudios do vendedor.** A loja grava áudios (boas-vindas, convite para simulação…), diz quando usar cada um, e a IA manda o áudio certo na hora certa, sem repetir. O sistema converte para mensagem de voz do WhatsApp.
+- **Vídeos dos carros** no estoque, enviados pela IA.
+- **Qualificação em 4 dimensões** (intenção, capacidade de pagamento, momento, engajamento), com o motivo de cada ponto, e temperatura frio, morno, quente ou pronto.
+- **Leitura da IA em cada conversa:** resumo, travas, sinais de compra e próximo passo para o vendedor, e um botão "Analisar agora" que lê a conversa inteira.
+- **Vários acessos:** administrador (todas as lojas), dono da loja (tudo da loja dele) e vendedor (só os clientes dele). Cada pessoa com e-mail e senha.
+- **Várias lojas** num sistema só, cada uma com seu número de WhatsApp, estoque, equipe e configurações.
+- **Mais ferramentas no painel:** tela de Simulações com situação (nova, em análise, aprovada, reprovada), notas internas, etiquetas, transferir lead entre vendedores, respostas rápidas, mandar áudio gravado pelo painel, relatório por vendedor e exportar os leads em planilha.
+
+Para atualizar quem já está na versão 1, siga [docs/atualizar-para-v2.md](docs/atualizar-para-v2.md).
 
 ## Arquitetura
 
@@ -49,11 +46,12 @@ Meta Cloud API ──webhook──▶ /webhook  (valida assinatura, responde 200
                      Fila por contato (agrupa mensagens, uma resposta por vez)
                                │
                                ▼
-                 Agente de vendas (Claude Opus 5.5 + 14 ferramentas)
-     buscar_estoque · detalhes_veiculo · enviar_fotos · simular_financiamento
-     registrar_cliente · registrar_troca · horarios_disponiveis · agendar_visita
-     alterar_visita · enviar_localizacao_loja · enviar_botoes · enviar_mensagem
-     transferir_para_vendedor · registrar_sem_interesse
+                 Agente de vendas (Claude Opus 5.5 + até 18 ferramentas)
+     buscar_estoque · detalhes_veiculo · enviar_fotos · enviar_videos · enviar_audio
+     atualizar_ficha · registrar_troca · registrar_dados_simulacao
+     enviar_simulacao_para_vendedor · simular_financiamento · horarios_disponiveis
+     agendar_visita · alterar_visita · enviar_localizacao_loja · enviar_botoes
+     enviar_mensagem · transferir_para_vendedor · registrar_sem_interesse
                                │
           ┌────────────────────┼─────────────────────┐
           ▼                    ▼                     ▼
@@ -99,17 +97,17 @@ Requisitos: Node 22.13 ou mais novo.
 ```bash
 npm install
 cd web && npm install && cd ..
-cp .env.example .env          # preencha ADMIN_PASSWORD (o resto pode ficar vazio para testar)
-npm run seed -- --fotos-demo  # carrega a FA Veículos com fotos de exemplo
+cp .env.example .env          # preencha ADMIN_EMAIL e ADMIN_PASSWORD (o resto pode ficar vazio para testar)
+npm run seed -- --fotos-demo  # cria a loja FA Veículos com fotos de exemplo
 npm run build:web
 npm run dev                   # http://localhost:3000/painel
 ```
 
-Sem `ANTHROPIC_API_KEY`, a IA roda em **modo de teste**: respostas prontas que exercitam o fluxo inteiro (estoque, fotos, parcela, agenda, vendedor). Com a chave, quem responde é o Claude. Sem as credenciais da Meta, tudo funciona pelo simulador do painel.
+Sem `ANTHROPIC_API_KEY`, a IA roda em **modo de teste**: respostas prontas e sempre iguais, só para exercitar o caminho (estoque, fotos, simulação, agenda, vendedor). **Não julgue a qualidade da conversa nesse modo** — com a chave, quem responde é o Claude. Sem as credenciais da Meta, tudo funciona pelo simulador do painel.
 
 Para desenvolver o painel com recarga automática: `cd web && API_URL=http://localhost:3000 npm run dev`.
 
-Testes: `npm test` (17 testes: financiamento, webhook, CSV, agenda, schema das ferramentas e uma conversa completa de ponta a ponta).
+Testes: `npm test` (18 testes: financiamento, CPF e criptografia, qualificação, webhook por loja, CSV, agenda, schema das ferramentas e o funil completo até a ficha de simulação chegar no vendedor).
 
 ## Colocar no ar
 
@@ -134,9 +132,11 @@ O banco fica em `data/arranque.db` (SQLite). Faça backup dessa pasta.
 
 ## O que falta para a FA Veículos ir ao ar
 
-- Número da loja na Cloud API (pode ser o mesmo do app, via coexistência) e credenciais no `.env`.
-- Fotos reais de cada carro no estoque e o preço dos que estão sem.
-- WhatsApp do Beto em Configurações, Vendedores (ele está cadastrado e desativado até ter o número).
+- Chave da Anthropic (`ANTHROPIC_API_KEY`) para sair do modo de teste.
+- Número da loja na Cloud API (pode ser o mesmo do app, via coexistência), cadastrado em Lojas.
+- Fotos e vídeos reais de cada carro no estoque.
+- WhatsApp e senha do Beto e senha do Fabrício, em Equipe.
+- Áudios gravados pelo Beto, em Áudios do vendedor.
 - Latitude e longitude da loja, para mandar o pin.
 - Três modelos de mensagem aprovados na Meta (sugestões em `docs/configurar-meta.md`).
 - Dataset da Meta para as conversões.

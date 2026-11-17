@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { config } from "../config.js";
-import { contacts, messages } from "../db/repos.js";
+import { contacts, messages, stores } from "../db/repos.js";
 import { getSettings } from "../db/settings.js";
 import { publish } from "../util/bus.js";
 import { log } from "../util/log.js";
@@ -17,8 +17,9 @@ export function validSignature(raw: Buffer | undefined, header: string | undefin
 }
 
 /** Converte uma mensagem do webhook da Cloud API no formato interno. */
-export function parseMessage(m: any, profileName: string | null): Inbound {
+export function parseMessage(m: any, profileName: string | null, storeId = 0): Inbound {
   const base: Inbound = {
+    storeId,
     channel: "whatsapp",
     waId: String(m.from),
     profileName,
@@ -68,6 +69,7 @@ export function registerWebhook(app: FastifyInstance) {
   app.post("/webhook", async (req, reply) => {
     const raw = (req as any).rawBody as Buffer | undefined;
     if (!validSignature(raw, req.headers["x-hub-signature-256"] as string | undefined, config.whatsapp.appSecret)) {
+      // O App Secret é do app da Meta (o mesmo para todas as lojas da agência)
       log.warn("assinatura do webhook inválida");
       return reply.code(401).send();
     }
@@ -86,14 +88,18 @@ export function handlePayload(body: any) {
   for (const entry of body.entry ?? []) {
     for (const change of entry.changes ?? []) {
       const v = change.value ?? {};
-      if (v.metadata?.phone_number_id && config.whatsapp.phoneNumberId && v.metadata.phone_number_id !== config.whatsapp.phoneNumberId) continue;
+      const store = stores.forWebhook(v.metadata?.phone_number_id);
+      if (!store) {
+        if (v.messages?.length) log.warn("mensagem para um número sem loja cadastrada", { phone_number_id: v.metadata?.phone_number_id });
+        continue;
+      }
 
       const names = new Map<string, string>();
       for (const c of v.contacts ?? []) if (c.wa_id) names.set(String(c.wa_id), c.profile?.name ?? null);
 
       for (const m of v.messages ?? []) {
         if (m.type === "system") continue;
-        void receive(parseMessage(m, names.get(String(m.from)) ?? null)).catch((e) => log.error("falha ao receber mensagem", { err: e }));
+        void receive(parseMessage(m, names.get(String(m.from)) ?? null, store.id)).catch((e) => log.error("falha ao receber mensagem", { err: e }));
       }
 
       for (const st of v.statuses ?? []) {
@@ -106,7 +112,7 @@ export function handlePayload(body: any) {
       // Coexistência: mensagens que a equipe mandou pelo app WhatsApp Business no celular
       for (const echo of v.message_echoes ?? []) {
         const to = String(echo.to ?? "");
-        const c = contacts.byWaId(to);
+        const c = contacts.byWaId(store.id, to);
         if (!c || messages.byWaId(String(echo.id))) continue;
         const row = messages.add({
           contact_id: c.id,
@@ -119,7 +125,7 @@ export function handlePayload(body: any) {
           meta: { via: "app_whatsapp_business" },
         });
         // humano respondeu pelo celular → a IA sai de cena nesse contato
-        const until = new Date(Date.now() + getSettings().handoff.pausar_ia_horas * 3600_000).toISOString();
+        const until = new Date(Date.now() + getSettings(store.id).handoff.pausar_ia_horas * 3600_000).toISOString();
         contacts.update(c.id, { bot_paused_until: until, paused_reason: "vendedor_respondeu_pelo_app" });
         if (row) publish({ type: "message", contactId: c.id, messageId: row.id });
         publish({ type: "contact", contactId: c.id });

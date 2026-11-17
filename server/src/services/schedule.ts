@@ -32,7 +32,7 @@ export interface Slot {
 }
 
 /** Horários livres a partir de agora, respeitando expediente, antecedência mínima e lotação. */
-export function availableSlots(s: StoreSettings, opts: { data?: string | null; periodo?: "manha" | "tarde" | null; limite?: number } = {}): Slot[] {
+export function availableSlots(storeId: number, s: StoreSettings, opts: { data?: string | null; periodo?: "manha" | "tarde" | null; limite?: number } = {}): Slot[] {
   const out: Slot[] = [];
   const now = new Date();
   const earliest = now.getTime() + s.agenda.antecedencia_min_horas * 3600_000;
@@ -49,7 +49,7 @@ export function availableSlots(s: StoreSettings, opts: { data?: string | null; p
       const hora = toHHMM(m);
       const dt = fromZoned(d, hora);
       if (dt.getTime() < earliest) continue;
-      if (appointments.countAt(dt.toISOString()) >= s.agenda.max_por_horario) continue;
+      if (appointments.countAt(storeId, dt.toISOString()) >= s.agenda.max_por_horario) continue;
       const [, mm, dd] = d.split("-");
       const short = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][wd];
       const hShort = hora.endsWith(":00") ? `${Number(hora.slice(0, 2))}h` : hora.replace(":", "h");
@@ -62,17 +62,17 @@ export function availableSlots(s: StoreSettings, opts: { data?: string | null; p
 
 export type SlotCheck = { ok: true; iso: string; label: string } | { ok: false; motivo: string; sugestoes: Slot[] };
 
-export function checkSlot(s: StoreSettings, data: string, hora: string): SlotCheck {
+export function checkSlot(storeId: number, s: StoreSettings, data: string, hora: string): SlotCheck {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || !/^\d{2}:\d{2}$/.test(hora)) {
-    return { ok: false, motivo: "Data ou hora em formato inválido (use AAAA-MM-DD e HH:MM).", sugestoes: availableSlots(s, { limite: 6 }) };
+    return { ok: false, motivo: "Data ou hora em formato inválido (use AAAA-MM-DD e HH:MM).", sugestoes: availableSlots(storeId, s, { limite: 6 }) };
   }
   const wd = weekdayOf(data);
   const h = s.horarios[wd];
   const sugestoesDia = () => {
-    const doDia = availableSlots(s, { data, limite: 6 });
-    return doDia.length ? doDia : availableSlots(s, { limite: 6 });
+    const doDia = availableSlots(storeId, s, { data, limite: 6 });
+    return doDia.length ? doDia : availableSlots(storeId, s, { limite: 6 });
   };
-  if (!h) return { ok: false, motivo: `A loja não abre ${weekdayName(wd)}.`, sugestoes: availableSlots(s, { limite: 6 }) };
+  if (!h) return { ok: false, motivo: `A loja não abre ${weekdayName(wd)}.`, sugestoes: availableSlots(storeId, s, { limite: 6 }) };
   const m = toMin(hora);
   if (m < toMin(h.abre) || m >= toMin(h.fecha)) {
     return { ok: false, motivo: `Fora do horário (${weekdayName(wd)} a loja funciona das ${h.abre} às ${h.fecha}).`, sugestoes: sugestoesDia() };
@@ -82,8 +82,8 @@ export function checkSlot(s: StoreSettings, data: string, hora: string): SlotChe
     return { ok: false, motivo: "Esse horário já passou ou está em cima da hora.", sugestoes: sugestoesDia() };
   }
   const maxDate = Date.now() + (s.agenda.dias_a_frente + 1) * 86400_000;
-  if (dt.getTime() > maxDate) return { ok: false, motivo: `A agenda abre só ${s.agenda.dias_a_frente} dias à frente.`, sugestoes: availableSlots(s, { limite: 6 }) };
-  if (appointments.countAt(dt.toISOString()) >= s.agenda.max_por_horario) {
+  if (dt.getTime() > maxDate) return { ok: false, motivo: `A agenda abre só ${s.agenda.dias_a_frente} dias à frente.`, sugestoes: availableSlots(storeId, s, { limite: 6 }) };
+  if (appointments.countAt(storeId, dt.toISOString()) >= s.agenda.max_por_horario) {
     return { ok: false, motivo: "Esse horário já está lotado.", sugestoes: sugestoesDia() };
   }
   const [, mm, dd] = data.split("-");
