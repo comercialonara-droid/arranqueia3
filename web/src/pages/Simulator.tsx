@@ -110,9 +110,9 @@ export default function Simulator() {
       <div className="grid gap-6 lg:grid-cols-[400px_1fr]">
         <div>
           {/* aparelho */}
-          <div className="mx-auto flex h-[680px] max-w-[400px] flex-col overflow-hidden rounded-[28px] border-[6px] border-asfalto bg-[#e9ecef] shadow-[0_18px_40px_-18px_rgba(27,35,43,.45)]">
+          <div className="mx-auto flex h-[680px] max-w-[400px] flex-col overflow-hidden rounded-[28px] border-[6px] border-[#2a3541] bg-[#0b1116] shadow-[0_18px_40px_-18px_rgba(27,35,43,.45)]">
             <div className="flex items-center gap-3 bg-asfalto px-4 py-3 text-white">
-              <span className="grid size-9 place-items-center rounded-full bg-faixa font-heading text-lg font-semibold text-asfalto">{(me.data?.loja_atual?.nome ?? "L")[0]}</span>
+              <span className="grid size-9 place-items-center rounded-full bg-faixa font-heading text-lg font-semibold text-ink">{(me.data?.loja_atual?.nome ?? "L")[0]}</span>
               <div className="min-w-0">
                 <p className="truncate font-medium">{me.data?.loja_atual?.nome}</p>
                 <p className="text-xs text-white/70">{typing ? "digitando…" : "online"}</p>
@@ -159,7 +159,7 @@ export default function Simulator() {
                 if (text.trim()) send({ texto: text.trim() });
               }}
             >
-              <button type="button" onClick={() => fileRef.current?.click()} className="grid size-9 place-items-center text-muted-foreground hover:text-asfalto" aria-label="Enviar foto">
+              <button type="button" onClick={() => fileRef.current?.click()} className="grid size-9 place-items-center text-muted-foreground hover:text-foreground" aria-label="Enviar foto">
                 <ImagePlus className="size-5" />
               </button>
               <input

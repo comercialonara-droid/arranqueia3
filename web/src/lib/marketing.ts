@@ -23,7 +23,7 @@ export const FORMATO_LABEL: Record<string, string> = { video_reels: "Vídeo (Ree
 export const NOTA_LABEL: Record<string, { t: string; cls: string }> = {
   otima: { t: "Ótima", cls: "bg-verde text-white" },
   boa: { t: "Boa", cls: "bg-verde/15 text-verde" },
-  atencao: { t: "Atenção", cls: "bg-faixa text-asfalto" },
+  atencao: { t: "Atenção", cls: "bg-faixa text-ink" },
   critica: { t: "Crítica", cls: "bg-sinal text-white" },
 };
 
@@ -180,7 +180,8 @@ export interface Questionnaire {
   produtos: { id: string; titulo: string }[];
 }
 
-export const money = (v: number | null | undefined) => (v == null ? "—" : brl(v));
+export const money = (v: number | null | undefined) =>
+  v == null ? "—" : Math.abs(v) >= 1_000_000 ? `R$ ${(v / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} mi` : brl(v);
 export const pctf = (v: number | null | undefined) => (v == null ? "—" : `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`);
 export const ratio = (v: number | null | undefined) => (v == null ? "—" : `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}x`);
 export const intf = (v: number | null | undefined) => (v == null ? "—" : v.toLocaleString("pt-BR"));

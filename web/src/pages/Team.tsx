@@ -69,7 +69,7 @@ export default function Team() {
             </div>
             {u.role === "vendedor" && (
               <span className="text-sm text-muted-foreground">
-                <span className="num text-base text-asfalto">{u.leads_recebidos}</span> leads
+                <span className="num text-base text-foreground">{u.leads_recebidos}</span> leads
               </span>
             )}
             <label className="flex items-center gap-2 text-sm">

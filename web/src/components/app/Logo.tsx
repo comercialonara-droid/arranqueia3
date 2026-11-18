@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 /**
  * Marca ArranqueIA (manual de identidade): o "A da pista" — estrada em perspectiva com a faixa amarela
  * tracejada subindo pelo meio — e a palavra "arranque" com o selo IA amarelo.
- * Desenhada com currentColor: em fundo claro use text-asfalto; em fundo escuro, text-white.
+ * Desenhada com currentColor: em fundo claro use text-foreground; em fundo escuro, text-white.
  */
 export function LogoMark({ className }: { className?: string }) {
   return (
@@ -23,7 +23,7 @@ export function Logo({ className, compact = false }: { className?: string; compa
       {!compact && (
         <span className="flex items-center gap-1.5 font-heading leading-none" aria-hidden>
           <span className="text-[28px] font-semibold tracking-[-0.01em]">arranque</span>
-          <span className="rounded-[5px] bg-faixa px-1.5 py-0.5 text-[15px] font-bold text-asfalto">IA</span>
+          <span className="rounded-[5px] bg-faixa px-1.5 py-0.5 text-[15px] font-bold text-ink">IA</span>
         </span>
       )}
     </div>

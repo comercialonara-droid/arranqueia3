@@ -58,7 +58,7 @@ export default function SettingsPage() {
         title="Configurações"
         description="O jeito que a IA atende, as regras de financiamento e quem recebe os leads."
         actions={
-          <Button onClick={() => save.mutate()} disabled={!dirty || save.isPending} className={cn(dirty && "bg-faixa text-asfalto hover:bg-faixa/85")}>
+          <Button onClick={() => save.mutate()} disabled={!dirty || save.isPending} className={cn(dirty && "bg-faixa text-ink hover:bg-faixa/85")}>
             {dirty ? "Salvar alterações" : "Tudo salvo"}
           </Button>
         }

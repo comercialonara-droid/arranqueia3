@@ -5,7 +5,7 @@ export function PlateChip({ children, className }: { children: React.ReactNode; 
   return (
     <span className={cn("inline-flex flex-col overflow-hidden rounded-[4px] border border-asfalto/70 bg-white leading-none", className)}>
       <span className="h-[4px] bg-placa" aria-hidden />
-      <span className="num px-1.5 py-[3px] text-[15px] font-semibold tracking-wide text-asfalto">{children}</span>
+      <span className="num px-1.5 py-[3px] text-[15px] font-semibold tracking-wide text-ink">{children}</span>
     </span>
   );
 }

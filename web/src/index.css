@@ -19,6 +19,9 @@
     --color-verde: var(--verde);
     --color-asfalto: var(--asfalto);
     --color-chapa: var(--chapa);
+    --color-ink: var(--ink);
+    --color-brilho: var(--brilho);
+    --color-pista: var(--pista);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -60,47 +63,50 @@
 }
 
 :root {
-    /* Pátio — tokens do painel */
-    --asfalto: #1b232b;      /* tinta principal e faixa escura do funil */
-    --pista: #eceef0;        /* fundo do app */
-    --chapa: #ffffff;        /* superfícies */
+    /* Pátio à noite — tokens do painel (tema escuro, mesma marca da landing) */
+    --asfalto: #0a0f14;      /* faixa escura recuada (funil, bandas) */
+    --pista: #0d1319;        /* fundo do app */
+    --chapa: #141c25;        /* superfícies (cards) */
+    --ink: #10161c;          /* texto escuro sobre amarelo e placas */
     --faixa: #f2b705;        /* amarelo de sinalização (acento) */
-    --placa: #1f4e9e;        /* azul da placa Mercosul (informação) */
-    --sinal: #c8412b;        /* urgente */
-    --verde: #2f7d4f;        /* confirmado/vendido */
+    --placa: #5b8def;        /* azul de informação, legível no escuro */
+    --brilho: #3b7dff;       /* luz azul (gráficos, foco, item ativo) */
+    --sinal: #ef5b45;        /* urgente */
+    --verde: #3fb37a;        /* confirmado/vendido */
 
     --background: var(--pista);
-    --foreground: var(--asfalto);
+    --foreground: #e8edf2;
     --card: var(--chapa);
-    --card-foreground: var(--asfalto);
-    --popover: var(--chapa);
-    --popover-foreground: var(--asfalto);
-    --primary: var(--asfalto);
-    --primary-foreground: #ffffff;
-    --secondary: #e2e5e8;
-    --secondary-foreground: var(--asfalto);
-    --muted: #e6e8eb;
-    --muted-foreground: #5b6670;
-    --accent: #fff4cc;
-    --accent-foreground: var(--asfalto);
+    --card-foreground: #e8edf2;
+    --popover: #18212b;
+    --popover-foreground: #e8edf2;
+    --primary: var(--faixa);
+    --primary-foreground: var(--ink);
+    --secondary: #1d2732;
+    --secondary-foreground: #e8edf2;
+    --muted: #1a232d;
+    --muted-foreground: #8b97a4;
+    --accent: #1e2a37;
+    --accent-foreground: #f3f6f9;
     --destructive: var(--sinal);
-    --border: #d6dade;
-    --input: #cfd4d9;
-    --ring: var(--faixa);
-    --chart-1: var(--asfalto);
+    --border: #232e3a;
+    --input: #2a3644;
+    --ring: var(--brilho);
+    --chart-1: var(--brilho);
     --chart-2: var(--faixa);
-    --chart-3: var(--placa);
+    --chart-3: var(--verde);
     --chart-4: #8a959f;
-    --chart-5: var(--verde);
-    --radius: 0.5rem;
-    --sidebar: #f6f7f8;
-    --sidebar-foreground: var(--asfalto);
-    --sidebar-primary: var(--asfalto);
+    --chart-5: var(--placa);
+    --radius: 0.8rem;
+    --sidebar: #0a0f14;
+    --sidebar-foreground: #c9d2db;
+    --sidebar-primary: var(--brilho);
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #e6e8eb;
-    --sidebar-accent-foreground: var(--asfalto);
-    --sidebar-border: var(--border);
-    --sidebar-ring: var(--faixa);
+    --sidebar-accent: #141c25;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #1b242e;
+    --sidebar-ring: var(--brilho);
+    color-scheme: dark;
 }
 
 @layer base {
@@ -132,3 +138,46 @@
 .lane-dash-v {
   background-image: repeating-linear-gradient(180deg, var(--faixa) 0 10px, transparent 10px 16px);
 }
+
+/* Luz de fundo do app: o mesmo azul da landing, bem sutil */
+body {
+  background:
+    radial-gradient(900px 500px at 85% -10%, rgba(59, 125, 255, 0.10), transparent 70%),
+    radial-gradient(700px 500px at 0% 100%, rgba(31, 78, 158, 0.08), transparent 70%),
+    var(--pista);
+  background-attachment: fixed;
+}
+/* Cartões com borda iluminada (KPIs, destaques) */
+.glow-card {
+  position: relative;
+  background: linear-gradient(180deg, rgba(30, 41, 54, 0.75), rgba(20, 28, 37, 0.9));
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.glow-card.lit {
+  border-color: rgba(91, 141, 239, 0.35);
+  box-shadow: 0 0 0 1px rgba(59, 125, 255, 0.05), 0 20px 50px -20px rgba(59, 125, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.glow-line {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--brilho), transparent);
+  box-shadow: 0 0 24px 4px rgba(59, 125, 255, 0.35);
+}
+.icon-tile {
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(59, 125, 255, 0.28), rgba(59, 125, 255, 0.06));
+  border: 1px solid rgba(91, 141, 239, 0.35);
+  color: #a9c4ff;
+}
+.icon-tile.amarelo { background: linear-gradient(135deg, rgba(242, 183, 5, 0.3), rgba(242, 183, 5, 0.05)); border-color: rgba(242, 183, 5, 0.4); color: #ffd860; }
+.icon-tile.verde { background: linear-gradient(135deg, rgba(63, 179, 122, 0.3), rgba(63, 179, 122, 0.05)); border-color: rgba(63, 179, 122, 0.4); color: #8fe0b5; }
+.icon-tile.vermelho { background: linear-gradient(135deg, rgba(239, 91, 69, 0.3), rgba(239, 91, 69, 0.05)); border-color: rgba(239, 91, 69, 0.4); color: #ffab9c; }
+.nav-active {
+  background: linear-gradient(90deg, rgba(59, 125, 255, 0.22), rgba(59, 125, 255, 0.06));
+  box-shadow: inset 0 0 0 1px rgba(91, 141, 239, 0.35);
+}
+::selection { background: rgba(242, 183, 5, 0.35); }
+* { scrollbar-color: #2a3644 transparent; }
+.bg-chapa { background-image: linear-gradient(180deg, rgba(30, 41, 54, 0.55), rgba(20, 28, 37, 0)); }

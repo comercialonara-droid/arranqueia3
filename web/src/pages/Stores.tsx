@@ -59,7 +59,7 @@ export default function Stores() {
                   {segmentOf(s.segmento).nome} · {s.veiculos} {segmentOf(s.segmento).produtos}, {s.contatos} conversas
                 </p>
               </div>
-              <span className={cn("rounded-full px-2 py-0.5 text-xs", s.whatsapp_ok ? "bg-verde/10 text-verde" : "bg-faixa/20 text-asfalto")}>{s.whatsapp_ok ? "WhatsApp conectado" : "Sem WhatsApp"}</span>
+              <span className={cn("rounded-full px-2 py-0.5 text-xs", s.whatsapp_ok ? "bg-verde/10 text-verde" : "bg-faixa/20 text-foreground")}>{s.whatsapp_ok ? "WhatsApp conectado" : "Sem WhatsApp"}</span>
             </div>
             <div className="mt-4 flex gap-2">
               <Button

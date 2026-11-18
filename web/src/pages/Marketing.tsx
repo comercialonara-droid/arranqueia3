@@ -36,10 +36,10 @@ import {
 
 export function StatusBadge({ status }: { status: CampaignStatus }) {
   const cls: Record<CampaignStatus, string> = {
-    gerando: "bg-accent text-asfalto",
-    rascunho: "bg-muted text-asfalto",
+    gerando: "bg-accent text-foreground",
+    rascunho: "bg-muted text-foreground",
     ativa: "bg-verde text-white",
-    pausada: "bg-faixa text-asfalto",
+    pausada: "bg-faixa text-ink",
     encerrada: "bg-muted text-muted-foreground",
     erro: "bg-sinal text-white",
   };
@@ -51,7 +51,7 @@ export function Metric({ label, value, sub, tone }: { label: string; value: stri
   return (
     <div className="min-w-0">
       <p className="text-sm text-muted-foreground">{label}</p>
-      <p className={cn("num mt-0.5 truncate text-[30px] font-semibold leading-none", tone === "ruim" && "text-sinal", tone === "bom" && "text-verde")}>{value}</p>
+      <p title={value} className={cn("num mt-0.5 truncate font-semibold leading-none", value.length > 11 ? "text-[24px]" : "text-[30px]", tone === "ruim" && "text-sinal", tone === "bom" && "text-verde")}>{value}</p>
       {sub && <p className="mt-1 text-xs leading-snug text-muted-foreground">{sub}</p>}
     </div>
   );
@@ -114,7 +114,7 @@ export function SpendChart({ serie }: { serie: { data: string; investimento: num
             labelFormatter={(d) => String(d).split("-").reverse().join("/")}
             formatter={(v, name) => (name === "Investido" ? money(Number(v)) : String(v))}
           />
-          <Bar yAxisId="r" dataKey="investimento" name="Investido" fill="var(--asfalto)" radius={[3, 3, 0, 0]} maxBarSize={22} />
+          <Bar yAxisId="r" dataKey="investimento" name="Investido" fill="#3b6fd8" radius={[3, 3, 0, 0]} maxBarSize={22} />
           <Line yAxisId="l" dataKey="leads" name="Leads" stroke="var(--faixa)" strokeWidth={3} dot={{ r: 2.5, fill: "var(--faixa)" }} type="monotone" />
         </ComposedChart>
       </ResponsiveContainer>
@@ -157,7 +157,7 @@ export default function Marketing() {
           <ClipboardList className="size-5 shrink-0" />
           <span className="min-w-0 flex-1">
             <span className="block font-medium">Questionário da loja {pct}% respondido</span>
-            <span className="block text-sm text-asfalto/75">A IA monta campanhas melhores quando sabe a região, o cliente, a margem e a meta. Faltam {quest.data.preenchimento.faltando.length} respostas essenciais.</span>
+            <span className="block text-sm text-foreground/75">A IA monta campanhas melhores quando sabe a região, o cliente, a margem e a meta. Faltam {quest.data.preenchimento.faltando.length} respostas essenciais.</span>
           </span>
           <span className="lane-dash hidden h-1.5 w-24 shrink-0 rounded sm:block" aria-hidden />
         </Link>
@@ -185,7 +185,7 @@ export default function Marketing() {
                 <SpendChart serie={res.data.serie} />
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                <span className="mr-1 inline-block size-2.5 rounded-sm bg-asfalto align-middle" /> investido
+                <span className="mr-1 inline-block size-2.5 rounded-sm bg-[#3b6fd8] align-middle" /> investido
                 <span className="ml-4 mr-1 inline-block h-[3px] w-3 bg-faixa align-middle" /> leads das campanhas no WhatsApp
               </p>
             </section>

@@ -41,7 +41,7 @@ export default function MarketingQuestionnaire() {
 
   return (
     <div className="mx-auto max-w-3xl pb-24">
-      <Link to="/marketing" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-asfalto">
+      <Link to="/marketing" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> Marketing
       </Link>
       <PageHeader title="Questionário da loja" description="O diagnóstico que a IA estrategista lê antes de montar qualquer campanha. As perguntas marcadas com • são as que mais pesam." />
@@ -76,7 +76,7 @@ export default function MarketingQuestionnaire() {
         ))}
         <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-chapa/95 px-4 py-3 backdrop-blur md:left-[236px]">
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
-            <span className={cn("text-sm", dirty ? "text-asfalto" : "text-muted-foreground")}>{dirty ? "Alterações não salvas" : "Tudo salvo"}</span>
+            <span className={cn("text-sm", dirty ? "text-foreground" : "text-muted-foreground")}>{dirty ? "Alterações não salvas" : "Tudo salvo"}</span>
             <Button type="submit" disabled={!dirty || save.isPending}>
               Salvar respostas
             </Button>
@@ -164,7 +164,7 @@ function Field({ q, value, onChange, produtos }: { q: Question; value: unknown; 
               type="button"
               aria-pressed={value === v}
               onClick={() => onChange(v)}
-              className={cn("rounded-full border px-4 py-1 text-sm", value === v ? "border-asfalto bg-asfalto text-white" : "hover:bg-muted")}
+              className={cn("rounded-full border px-4 py-1 text-sm", value === v ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted")}
             >
               {l as string}
             </button>

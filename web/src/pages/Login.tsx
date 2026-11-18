@@ -60,7 +60,7 @@ export default function Login({ onLogin }: { onLogin: () => Promise<void> }) {
             />
             {erro && <p className="text-sm text-[#ffb4a6]">{erro}</p>}
           </div>
-          <Button type="submit" disabled={busy || !senha || !email} className="mt-6 h-11 w-full bg-faixa text-asfalto hover:bg-faixa/90">
+          <Button type="submit" disabled={busy || !senha || !email} className="mt-6 h-11 w-full bg-faixa text-ink hover:bg-faixa/90">
             {busy ? "Entrando…" : "Entrar"}
           </Button>
         </form>

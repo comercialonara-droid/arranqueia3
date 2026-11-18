@@ -56,7 +56,7 @@ export default function Conversations() {
                 key={f.id}
                 onClick={() => setFiltro(f.id)}
                 aria-pressed={filtro === f.id}
-                className={cn("rounded-full border px-3 py-1 text-sm", filtro === f.id ? "border-asfalto bg-asfalto text-white" : "bg-chapa text-asfalto/80 hover:bg-muted")}
+                className={cn("rounded-full border px-3 py-1 text-sm", filtro === f.id ? "border-primary bg-primary text-primary-foreground" : "bg-chapa text-foreground/80 hover:bg-muted")}
               >
                 {f.label}
               </button>
@@ -193,8 +193,8 @@ function ChatView({ id }: { id: number }) {
 
   return (
     <div className="grid h-full min-h-0 xl:grid-cols-[1fr_360px]">
-      <div className="flex min-h-0 flex-col">
-        <header className="flex items-center gap-3 border-b bg-chapa px-4 py-3">
+      <div className="flex min-h-0 min-w-0 flex-col">
+        <header className="flex items-center gap-2 border-b bg-chapa px-4 py-3 sm:gap-3">
           <button className="md:hidden" onClick={() => nav("/conversas")} aria-label="Voltar para a lista">
             <ArrowLeft className="size-5" />
           </button>
@@ -206,21 +206,21 @@ function ChatView({ id }: { id: number }) {
             </p>
           </div>
           <Button variant="outline" size="sm" className="xl:hidden" onClick={() => setFichaOpen(true)}>
-            <IdCard /> Ficha
+            <IdCard /> <span className="hidden sm:inline">Ficha</span>
           </Button>
           {paused ? (
             <Button size="sm" variant="secondary" onClick={() => resume.mutate()} disabled={resume.isPending}>
-              <Bot /> Devolver para a IA
+              <Bot /> <span className="sm:hidden">Devolver</span><span className="hidden sm:inline">Devolver para a IA</span>
             </Button>
           ) : (
-            <Button size="sm" onClick={() => pause.mutate()} disabled={pause.isPending} className="bg-faixa text-asfalto hover:bg-faixa/85">
-              <Hand /> Assumir conversa
+            <Button size="sm" onClick={() => pause.mutate()} disabled={pause.isPending} className="bg-faixa text-ink hover:bg-faixa/85">
+              <Hand /> <span className="sm:hidden">Assumir</span><span className="hidden sm:inline">Assumir conversa</span>
             </Button>
           )}
         </header>
 
         <div
-          className={cn("flex items-center gap-2 border-b px-4 py-1.5 text-sm", paused ? "bg-[#fdf0c2] text-asfalto" : "bg-[#e4ebf5] text-asfalto/80")}
+          className={cn("flex items-center gap-2 border-b px-4 py-1.5 text-sm", paused ? "bg-[#3a300c] text-foreground" : "bg-[#16304f] text-foreground/80")}
           role="status"
         >
           {paused ? <Hand className="size-4" /> : <Bot className="size-4" />}
@@ -229,7 +229,7 @@ function ChatView({ id }: { id: number }) {
             : "A IA está atendendo este cliente."}
         </div>
 
-        <div ref={scroller} className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-[#e9ecef] px-3 py-4 md:px-6" aria-live="polite">
+        <div ref={scroller} className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-[#0b1116] px-3 py-4 md:px-6" aria-live="polite">
           {rows.map((r, i) =>
             r.kind === "day" ? (
               <p key={`d${i}`} className="mx-auto w-fit rounded-full bg-chapa/80 px-3 py-0.5 text-xs text-muted-foreground">

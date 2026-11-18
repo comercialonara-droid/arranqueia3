@@ -50,7 +50,7 @@ export default function Campaign() {
 
   return (
     <div className="mx-auto max-w-[1300px]">
-      <Link to="/marketing" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-asfalto">
+      <Link to="/marketing" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> Marketing
       </Link>
       <PageHeader
@@ -205,13 +205,13 @@ function Strategy({ p }: { p: Plan }) {
           </p>
           <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-muted" aria-hidden>
             {p.orcamento.distribuicao.map((d, i) => (
-              <span key={d.item} style={{ width: `${d.percentual}%` }} className={["bg-asfalto", "bg-faixa", "bg-placa", "bg-verde", "bg-[#8a959f]"][i % 5]} />
+              <span key={d.item} style={{ width: `${d.percentual}%` }} className={["bg-[#6ea2ff]", "bg-faixa", "bg-placa", "bg-verde", "bg-[#8a959f]"][i % 5]} />
             ))}
           </div>
           <ul className="mt-3 space-y-2.5">
             {p.orcamento.distribuicao.map((d, i) => (
               <li key={d.item} className="flex gap-3">
-                <span className={cn("mt-1.5 size-2.5 shrink-0 rounded-sm", ["bg-asfalto", "bg-faixa", "bg-placa", "bg-verde", "bg-[#8a959f]"][i % 5])} />
+                <span className={cn("mt-1.5 size-2.5 shrink-0 rounded-sm", ["bg-[#6ea2ff]", "bg-faixa", "bg-placa", "bg-verde", "bg-[#8a959f]"][i % 5])} />
                 <span className="min-w-0 flex-1">
                   <span className="font-medium">{d.item}</span> <span className="num text-muted-foreground">· {d.percentual}% · {money(d.valor)}</span>
                   <span className="block text-sm text-muted-foreground">{d.motivo}</span>
@@ -267,7 +267,7 @@ function Strategy({ p }: { p: Plan }) {
           <ol className="space-y-4">
             {p.cronograma.map((x, i) => (
               <li key={i} className="grid grid-cols-[28px_1fr] gap-3">
-                <span className="num grid size-7 place-items-center rounded bg-asfalto text-sm font-semibold text-white">{i + 1}</span>
+                <span className="num grid size-7 place-items-center rounded bg-faixa text-sm font-semibold text-ink">{i + 1}</span>
                 <div>
                   <p className="font-medium">
                     {x.periodo} <span className="font-normal text-muted-foreground">· {x.foco}</span>
@@ -613,7 +613,7 @@ function AnalysisTab({ c, onChange }: { c: CampaignDetail; onChange: () => void 
             <ul className="divide-y">
               {a.acoes.map((x) => (
                 <li key={x.acao} className="flex gap-3 py-3">
-                  <span className={cn("mt-0.5 h-fit shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold", x.prioridade === "alta" ? "bg-sinal text-white" : x.prioridade === "media" ? "bg-faixa text-asfalto" : "bg-muted")}>
+                  <span className={cn("mt-0.5 h-fit shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold", x.prioridade === "alta" ? "bg-sinal text-white" : x.prioridade === "media" ? "bg-faixa text-ink" : "bg-muted")}>
                     {x.prioridade === "media" ? "média" : x.prioridade}
                   </span>
                   <span>

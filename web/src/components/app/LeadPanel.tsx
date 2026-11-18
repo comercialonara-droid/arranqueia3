@@ -123,7 +123,7 @@ export function LeadPanel({ data }: { data: Conversation }) {
               ).map(([l, v, max]) => (
                 <div key={l}>
                   <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full bg-asfalto" style={{ width: `${(v / max) * 100}%` }} />
+                    <div className="h-full bg-[#5b8def]" style={{ width: `${(v / max) * 100}%` }} />
                   </div>
                   <p className="mt-1 text-[11px] text-muted-foreground">{l}</p>
                   <p className="num text-sm">

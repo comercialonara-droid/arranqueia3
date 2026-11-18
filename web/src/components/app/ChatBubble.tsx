@@ -31,7 +31,7 @@ export function ChatBubble({ m, showSender }: { m: Message; showSender: boolean 
     <div className={cn("flex", out ? "justify-end" : "justify-start")}>
       <div className="max-w-[min(82%,520px)]">
         {showSender && out && (
-          <p className={cn("mb-0.5 flex items-center justify-end gap-1 text-xs", m.sender === "vendedor" ? "text-asfalto" : "text-muted-foreground")}>
+          <p className={cn("mb-0.5 flex items-center justify-end gap-1 text-xs", m.sender === "vendedor" ? "text-foreground" : "text-muted-foreground")}>
             {m.sender === "ia" ? <Bot className="size-3" /> : <UserRound className="size-3" />}
             {senderTag[m.sender] ?? m.sender}
             {m.meta?.automatico ? " (automático)" : ""}
@@ -41,8 +41,8 @@ export function ChatBubble({ m, showSender }: { m: Message; showSender: boolean 
           className={cn(
             "rounded-lg px-3 py-2 text-[15px] leading-snug shadow-[0_1px_0_rgba(27,35,43,.08)]",
             !out && "rounded-tl-sm bg-chapa",
-            out && m.sender === "ia" && "rounded-tr-sm bg-[#e4ebf5]",
-            out && m.sender === "vendedor" && "rounded-tr-sm bg-[#fdf0c2]",
+            out && m.sender === "ia" && "rounded-tr-sm bg-[#16304f]",
+            out && m.sender === "vendedor" && "rounded-tr-sm bg-[#3a300c]",
             out && m.sender === "sistema" && "rounded-tr-sm bg-muted",
             m.status === "failed" && "ring-1 ring-sinal/60",
             isImg && "p-1",
@@ -114,11 +114,11 @@ export function ChatBubble({ m, showSender }: { m: Message; showSender: boolean 
 export function TypingBubble() {
   return (
     <div className="flex justify-end" aria-live="polite">
-      <div className="flex items-center gap-1.5 rounded-lg rounded-tr-sm bg-[#e4ebf5] px-3 py-2.5 text-sm text-muted-foreground">
+      <div className="flex items-center gap-1.5 rounded-lg rounded-tr-sm bg-[#16304f] px-3 py-2.5 text-sm text-muted-foreground">
         <Bot className="size-3.5" /> IA escrevendo
         <span className="flex gap-0.5">
           {[0, 1, 2].map((i) => (
-            <span key={i} className="size-1.5 animate-bounce rounded-full bg-asfalto/50" style={{ animationDelay: `${i * 120}ms` }} />
+            <span key={i} className="size-1.5 animate-bounce rounded-full bg-white/50" style={{ animationDelay: `${i * 120}ms` }} />
           ))}
         </span>
       </div>

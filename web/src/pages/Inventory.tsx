@@ -79,7 +79,7 @@ export default function Inventory() {
             key={s}
             onClick={() => setFiltro(s)}
             aria-pressed={filtro === s}
-            className={cn("rounded-full border px-3 py-1 text-sm", filtro === s ? "border-asfalto bg-asfalto text-white" : "bg-chapa hover:bg-muted")}
+            className={cn("rounded-full border px-3 py-1 text-sm", filtro === s ? "border-primary bg-primary text-primary-foreground" : "bg-chapa hover:bg-muted")}
           >
             {s === "todos" ? "Todos" : STATUS.find((x) => x.id === s)!.label}
             <span className="num ml-1.5 opacity-70">{counts[s] ?? 0}</span>
@@ -120,7 +120,7 @@ export default function Inventory() {
                     {v.fotos.length > 0 && <span className="rounded bg-asfalto/85 px-1.5 py-0.5 text-xs text-white">{v.fotos.length} fotos</span>}
                     {v.videos?.length > 0 && <span className="rounded bg-asfalto/85 px-1.5 py-0.5 text-xs text-white">{v.videos.length} {v.videos.length === 1 ? "vídeo" : "vídeos"}</span>}
                     {v.destaque && (
-                      <span className="flex items-center gap-1 rounded bg-faixa px-1.5 py-0.5 text-xs font-medium text-asfalto">
+                      <span className="flex items-center gap-1 rounded bg-faixa px-1.5 py-0.5 text-xs font-medium text-ink">
                         <Star className="size-3" /> Destaque
                       </span>
                     )}

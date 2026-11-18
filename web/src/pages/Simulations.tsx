@@ -40,7 +40,7 @@ export default function Simulations() {
             key={s.id}
             onClick={() => setFiltro(s.id)}
             aria-pressed={filtro === s.id}
-            className={cn("rounded-full border px-3 py-1 text-sm", filtro === s.id ? "border-asfalto bg-asfalto text-white" : "bg-chapa hover:bg-muted")}
+            className={cn("rounded-full border px-3 py-1 text-sm", filtro === s.id ? "border-primary bg-primary text-primary-foreground" : "bg-chapa hover:bg-muted")}
           >
             {s.label}
             <span className="num ml-1.5 opacity-70">{counts[s.id] ?? 0}</span>
